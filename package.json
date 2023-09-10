@@ -1,0 +1,72 @@
+{
+  "name": "zether-client",
+  "version": "1.0.0",
+  "description": "Client for Zether Tokens",
+  "main": "app.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "start": "node ./app.js",
+    "test": "eslint --fix . && nyc mocha test/*.js test/**/*.js",
+    "build": "./build.sh"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "bip39": "^3.1.0",
+    "bn.js": "^5.2.1",
+    "body-parser": "^1.18.2",
+    "cors": "^2.8.5",
+    "csv-parser": "^2.3.1",
+    "dotenv": "^16.3.1",
+    "ethereumjs-tx": "^2.1.2",
+    "ethereumjs-util": "^7.1.5",
+    "express": "^4.18.2",
+    "fs-extra": "^7.0.1",
+    "hdkey": "^2.1.0",
+    "lmdb": "^2.8.5",
+    "node-cache": "^5.1.2",
+    "randomstring": "^1.3.0",
+    "semver": "^6.3.0",
+    "web3": "^4.1.1",
+    "web3-eth": "^4.1.1",
+    "web3-eth-abi": "^1.10.2",
+    "web3-utils": "^1.10.2",
+    "winston": "^3.10.0",
+    "@anonymous-zether/anonymous.js": "file:../anonymous-zether/packages/anonymous.js"
+  },
+  "devDependencies": {
+    "@types/bip39": "^3.0.0",
+    "@types/ethereumjs-tx": "^2.0.0",
+    "@types/ethereumjs-util": "^6.1.0",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "mocha": "^8.3.0",
+    "nock": "^9.6.0",
+    "nyc": "^15.1.0",
+    "sinon": "^10.0.0",
+    "sinon-chai": "^3.6.0",
+    "supertest": "^3.0.0"
+  },
+  "nyc": {
+    "extension": [
+      ".js"
+    ],
+    "exclude": [
+      "coverage",
+      "test",
+      "integration-test"
+    ],
+    "reporter": [
+      "html",
+      "text-summary",
+      "cobertura"
+    ],
+    "all": true,
+    "check-coverage": true,
+    "statements": 92,
+    "branches": 86,
+    "functions": 93,
+    "lines": 93
+  }
+}
