@@ -175,6 +175,15 @@ describe('ShieldedAccount', () => {
     });
   });
 
+  describe('findShieldedAccount()', () => {
+    it('findShieldedAccount() error handling', async () => {
+      ShieldedWallet.fs.readFile.rejects(new Error('File not found'));
+
+      let account = await wallet.findShieldedAccount('0x1');
+      expect(account).to.equal(undefined);
+    });
+  });
+
   describe('decrypt()', () => {
     it('decrypt(payload) decrypts a balance correctly', async () => {
       ShieldedWallet.fs.readFile.withArgs(keyFile).resolves(Buffer.from(JSON.stringify(encryptedAccount)));
@@ -360,7 +369,7 @@ describe('ShieldedAccount', () => {
       ShieldedWallet.fs.existsSync.withArgs(mappingFile).returns(false);
 
       const newAccount = await wallet.createAccount('0x28AAf3AAe78275FC0958669f643C13C75Eb3b847');
-      expect(ShieldedWallet.fs.writeFile).calledWith(mappingFile, JSON.stringify([{ ethAccount: '0x28AAf3AAe78275FC0958669f643C13C75Eb3b847', shieldedAccount: newAccount.shieldedAccount }]));
+      expect(ShieldedWallet.fs.writeFile).calledWith(mappingFile, JSON.stringify([{ ethAccount: '0x28AAf3AAe78275FC0958669f643C13C75Eb3b847', shieldedAccount: newAccount }]));
     });
 
     it('createAccount() throws if content is not valid JSON', async () => {

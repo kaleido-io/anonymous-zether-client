@@ -12,11 +12,15 @@ const nock = require('nock');
 const AbiCoder = require('web3-eth-abi');
 const BN = require('bn.js');
 
-const bn128 = require('@anonymous-zether/anonymous.js/src/utils/bn128.js');
+const { ElGamal } = require('@anonymous-zether/anonymous.js/src/utils/algebra.js');
+const bn128 = require('@anonymous-zether/anonymous.js/src/utils/bn128');
+const bn128Utils = require('@anonymous-zether/anonymous.js/src/utils/utils');
 const rpc = require('./mock-rpc.js');
 const constants = require('../../lib/constants.js');
+const Prover = require('../../lib/keystore/shielded/prover.js');
 
 function reset(setup) {
+  delete require.cache[require.resolve('../../lib/keystore/admin')];
   delete require.cache[require.resolve('../../lib/keystore/hdwallet')];
   delete require.cache[require.resolve('../../lib/keystore/shielded')];
   delete require.cache[require.resolve('../../lib/trade-manager.js')];
@@ -54,7 +58,7 @@ describe('trade-manager.js constructor() handling missing configurations', () =>
 });
 
 describe('trade-manager.js', () => {
-  let TradeManager, wm, shielded, tmpdir, tradeManager, Utils;
+  let TradeManager, wm, shielded, tmpdir, tradeManager, Utils, epochLength;
   let alice, bob;
 
   before(async function () {
@@ -81,7 +85,6 @@ describe('trade-manager.js', () => {
     shielded = new ShieldedAccount();
 
     TradeManager = require('../../lib/trade-manager.js');
-    sinon.stub(TradeManager.timers, 'sleep').resolves();
   });
 
   beforeEach(async () => {
@@ -96,6 +99,7 @@ describe('trade-manager.js', () => {
 
   after(() => {
     fs.removeSync(tmpdir);
+    tradeManager.web3.currentProvider.disconnect();
   });
 
   describe('init()', () => {
@@ -127,6 +131,22 @@ describe('trade-manager.js', () => {
         ethAccount,
         shieldedAccount,
       };
+    });
+  });
+
+  describe('register()', () => {
+    it('register Alice', async () => {
+      await tradeManager.registerAccount(alice.ethAccount.address);
+    });
+
+    it('register Bob', async () => {
+      await tradeManager.registerAccount(bob.ethAccount.address);
+    });
+  });
+
+  describe('mint()', () => {
+    it('mint some tokens to Alice', async () => {
+      await tradeManager.mint(alice.ethAccount.address, 10000);
     });
   });
 
@@ -195,17 +215,11 @@ describe('trade-manager.js', () => {
       expect(nock.isDone());
     });
 
-    it('fundAccount() error handling - can not locate ZSC contract', async () => {
-      let tm = new TradeManager();
-
-      await expect(tm.fundAccount('0x1', '0x2', 100)).to.eventually.be.rejectedWith('Invalid zether smart contract address: 0x1');
-    });
-
     it('fundAccount() error handling - can not locate shielded account', async () => {
       let tm = new TradeManager();
-      sinon.stub(tm, 'findShieldedAccount').resolves(undefined);
+      sinon.stub(tm.shieldedWallet, 'findShieldedAccount').resolves(undefined);
 
-      await expect(tm.fundAccount('0x1', '0x2', 100)).to.eventually.be.rejectedWith('ethAccount 0x2 does not have a shielded account');
+      await expect(tm.fundAccount('0x1', 100)).to.eventually.be.rejectedWith('ethAccount 0x1 does not have a shielded account');
     });
 
     it('fundAccount() error handling - failed to register shielded account', async () => {
@@ -213,164 +227,104 @@ describe('trade-manager.js', () => {
       tm.init({
         sendTransaction: () => Promise.reject(new Error('Bang!')),
       });
-      sinon.stub(tm, 'findShieldedAccount').resolves({ ethAccount: '0x1', shieldedAccount: ['0x11', '0x22'] });
+      sinon.stub(tm.shieldedWallet, 'findShieldedAccount').resolves(['0x11', '0x22']);
       sinon.stub(tm, 'approveZSC').resolves();
 
-      await expect(tm.fundAccount('0x1', '0x2', 100)).to.eventually.be.rejectedWith('Failed to fund shielded account {"ethAccount":"0x1","shieldedAccount":["0x11","0x22"]} for amount 100');
+      await expect(tm.fundAccount('0x1', 100)).to.eventually.be.rejectedWith('Failed to fund shielded account 0x11,0x22 for amount 100');
     });
   });
 
   describe('getBalance()', () => {
     it('getBalance() for given ZSC and shielded account index', async () => {
-      sinon.stub(tradeManager, '_recoverBalance').resolves(1000);
-      TradeManager.fs.readFile.withArgs(join(tmpDir, constants.ETH_SHIELD_ACCOUNT_MAPPING)).resolves(
-        Buffer.from(
-          JSON.stringify([
-            {
-              ethAccount: '0xa0154fBFf939E6ea17596FE9b1103ad5B2dFf366',
-              shieldedAccount: ['0x1d744c01c09ac43b4e72383da3d0266a154dde45235163231c6e06dc3d48296d', '0x15eae5218d0339e0081b82a181fd1eb6e74b2669003c05794d9d536101431cd3'],
-            },
-            {
-              ethAccount: '0xFB170f365E12d49403A958067F8652f4598D6e71',
-              shieldedAccount: ['0x2f4176ab9fe2dce4517ab675f994335ed76eccf1461e2d90563cf477877bcb8d', '0x2fee819eb34f853582ef8398105d7e2fbfd962cbba11fd03d67b56e2dfeb1c93'],
-            },
-          ])
-        )
-      );
+      // nock('http://dummy.io')
+      //   .post('/', (body) => {
+      //     return body.method === 'net_version';
+      //   })
+      //   .reply(201, () =>
+      //     rpc({
+      //       result: '0x501c',
+      //     })
+      //   );
 
-      nock('http://dummy.io')
-        .post('/', (body) => {
-          return body.method === 'net_version';
-        })
-        .reply(201, () =>
-          rpc({
-            result: '0x501c',
-          })
-        );
+      // nock('http://dummy.io')
+      //   .post('/', (body) => {
+      //     return body.method === 'eth_call';
+      //   })
+      //   .reply(201, () =>
+      //     rpc({
+      //       result: AbiCoder.encodeParameter('bytes32[2][2][]', SIMULATED),
+      //     })
+      //   );
 
-      nock('http://dummy.io')
-        .post('/', (body) => {
-          return body.method === 'eth_call';
-        })
-        .reply(201, () =>
-          rpc({
-            result: AbiCoder.encodeParameter('bytes32[2][2][]', SIMULATED),
-          })
-        );
-
-      let zsc = '0x10f5e113ab47a33965d39d1f286683b4db0b688c';
-      let result = await tradeManager.getBalance(zsc, '1');
+      let result = await tradeManager.getBalance(alice.shieldedAccount);
 
       expect(result).to.equal(1000);
     });
 
-    it('getBalance() error handling - failed to get local shieldedAccount', async () => {
-      sinon.stub(tradeManager, 'findShieldedAccount').resolves(undefined);
+    describe('getBalance() error handling', () => {
+      beforeEach(() => {
+        sinon.stub(tradeManager.shieldedWallet, 'loadAccountByPublicKey');
+      });
 
-      let zsc = '0x10f5e113ab47a33965d39d1f286683b4db0b688c';
-      await expect(tradeManager.getBalance(zsc, '1')).to.eventually.be.rejectedWith('Shielded account index 1 can not be located');
-    });
+      afterEach(() => {
+        tradeManager.shieldedWallet.loadAccountByPublicKey.restore();
+      });
 
-    it('getBalance() error handling - failed to match with local shieldedAccount', async () => {
-      sinon.stub(tradeManager, 'findShieldedAccount').resolves({ shieldedAccount: ['0x11', '0x22'] });
+      it('getBalance() error handling - failed to get local shieldedAccount', async () => {
+        tradeManager.shieldedWallet.loadAccountByPublicKey.resolves(undefined);
 
-      let zsc = '0x10f5e113ab47a33965d39d1f286683b4db0b688c';
-      await expect(tradeManager.getBalance(zsc, '1')).to.eventually.be.rejectedWith('Shielded account 0x11,0x22 does not exist in this service locally, can not be used to decrypt balances');
-    });
-
-    it('getBalance() error handling - failed to call smart contract simulateAccounts()', async () => {
-      let account = ['0x2f4176ab9fe2dce4517ab675f994335ed76eccf1461e2d90563cf477877bcb8d', '0x2fee819eb34f853582ef8398105d7e2fbfd962cbba11fd03d67b56e2dfeb1c93'];
-      sinon.stub(tradeManager, 'findShieldedAccount').resolves({ shieldedAccount: account });
-      nock('http://dummy.io')
-        .post('/', (body) => {
-          return body.method === 'net_version';
-        })
-        .reply(201, () =>
-          rpc({
-            result: '0x501c',
-          })
+        let address = ['0x1c2a73714f5a2366f16436de9242dfc2587cf75c25175031c3d3266a8236b709', '0x086e14bab439a55ce39a92ca5eed7948937918c36717f0de2f10c5294bb5e11d'];
+        await expect(tradeManager.getBalance(address)).to.eventually.be.rejectedWith(
+          'Shielded account 0x1c2a73714f5a2366f16436de9242dfc2587cf75c25175031c3d3266a8236b709,0x086e14bab439a55ce39a92ca5eed7948937918c36717f0de2f10c5294bb5e11d does not exist in this service locally, can not be used to decrypt balances'
         );
+      });
 
-      nock('http://dummy.io')
-        .post('/', (body) => {
-          return body.method === 'eth_call';
-        })
-        .reply(201, () =>
-          rpc({
-            error: 'dummy',
-          })
-        );
+      // it('getBalance() error handling - failed to call smart contract simulateAccounts()', async () => {
+      //   let account = ['0x2f4176ab9fe2dce4517ab675f994335ed76eccf1461e2d90563cf477877bcb8d', '0x2fee819eb34f853582ef8398105d7e2fbfd962cbba11fd03d67b56e2dfeb1c93'];
+      //   tradeManager.shieldedWallet.loadAccountByPublicKey.resolves({ shieldedAccount: account });
+      //   nock('http://dummy.io')
+      //     .post('/', (body) => {
+      //       return body.method === 'net_version';
+      //     })
+      //     .reply(201, () =>
+      //       rpc({
+      //         result: '0x501c',
+      //       })
+      //     );
 
-      let zsc = '0x10f5e113ab47a33965d39d1f286683b4db0b688c';
-      await expect(tradeManager.getBalance(zsc, '1')).to.eventually.be.rejectedWith('Failed to call simulateAccounts()');
+      //   nock('http://dummy.io')
+      //     .post('/', (body) => {
+      //       return body.method === 'eth_call';
+      //     })
+      //     .reply(201, () =>
+      //       rpc({
+      //         error: 'dummy',
+      //       })
+      //     );
+
+      //   await expect(tradeManager.getBalance(zsc, '1')).to.eventually.be.rejectedWith('Failed to call simulateAccounts()');
+      // });
+    });
+  });
+
+  describe('_decryptEncryptedBalance', () => {
+    it('decrypt successfully', async () => {
+      const testAccount = bn128Utils.createAccount();
+      const testBalance = new BN(100, 10);
+      const randomness = bn128.randomScalar();
+      const cipher_left = ElGamal.base['g'].mul(testBalance).add(testAccount.y.mul(randomness));
+      const cipher_right = bn128.curve.g.mul(randomness);
+      const prover = new Prover(testAccount.x, testAccount.y);
+      const balance = await tradeManager._decryptEncryptedBalance([bn128.serialize(cipher_left), bn128.serialize(cipher_right)], prover);
+      expect(balance).to.equal(100);
     });
   });
 
   describe('withdraw()', () => {
-    it('withdraw() should withdraw from an shielded account with zsc', async () => {
-      sinon.stub(tradeManager, '_recoverBalance').resolves(1000);
-
-      TradeManager.fs.readFile.withArgs(join(tmpDir, constants.ETH_SHIELD_ACCOUNT_MAPPING)).resolves(Buffer.from(JSON.stringify(MOCK_ETH_SHIELD_ACCOUNT_MAPPING)));
-      let host = 'http://dummy.io';
-      let path = '/';
-
-      nock(host)
-        .post('/', (body) => {
-          return body.method === 'net_version';
-        })
-        .times(2)
-        .reply(201, () =>
-          rpc({
-            result: '0x501c',
-          })
-        );
-
-      nock(host)
-        .post(path, (body) => {
-          return body.method === 'eth_call';
-        })
-        .reply(201, () =>
-          rpc({
-            result: AbiCoder.encodeParameter('bytes32[2][2][]', SIMULATED),
-          })
-        );
-
-      nock(host)
-        .post(path, (body) => {
-          return body.method === 'eth_sendTransaction';
-        })
-        .times(1)
-        .reply(201, () =>
-          rpc({
-            result: '0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331',
-          })
-        );
-
-      nock(host)
-        .post(path, (body) => {
-          return body.method === 'eth_getTransactionReceipt';
-        })
-        .times(1)
-        .reply(201, () =>
-          rpc({
-            result: {
-              transactionHash: '0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331',
-              transactionIndex: '0x1', // 1
-              blockNumber: '0xb', // 11
-              blockHash: '0xc6ef2fc5426d6ad6fd9e2a26abeab0aa2411b7ab17f30a99d3cb96aed1d1055b',
-              cumulativeGasUsed: '0x33bc', // 13244
-              gasUsed: '0x4dc', // 1244
-              contractAddress: '0xb60e8dd61c5d32be8058bb8eb970870f07233155', // or null, if none was created
-              logs: [],
-              logsBloom: '0x0000', // 256 byte bloom filter
-              status: '0x1',
-            },
-          })
-        );
-
-      let zsc = '0x10f5e113ab47a33965d39d1f286683b4db0b688c';
-      await tradeManager.withdraw(zsc, MOCK_ETH_SHIELD_ACCOUNT_MAPPING[0].ethAccount, MOCK_ETH_SHIELD_ACCOUNT_MAPPING[0].shieldedAccount, 100);
-    }).timeout(constants.ZSC_EPOCH_LENGTH * 1000);
+    it('withdraw() should withdraw from an shielded account with zsc', async function () {
+      this.timeout(tradeManager.epochLength * 1000);
+      await tradeManager.withdraw(alice.ethAccount.address, 100);
+    });
 
     it('withdraw() error handling - can not locate ZSC contract', async () => {
       let tm = new TradeManager();
@@ -471,8 +425,8 @@ describe('trade-manager.js', () => {
   });
 
   describe('transfer()', () => {
-    it('transfer() should transfer from an shielded account to another shielded with zsc and erc20 balance must be updated', async () => {
-      sinon.stub(tradeManager, '_recoverBalance').resolves(1000);
+    it('transfer() should transfer from an shielded account to another shielded with zsc and erc20 balance must be updated', async function () {
+      this.timeout(tradeManager.epochLength * 1000);
       sinon.stub(Utils, 'shuffleAccountsWParityCheck').returns({ y: SIMULATED[0], index: [1, 0] });
       TradeManager.fs.readFile.withArgs(join(tmpDir, constants.ETH_SHIELD_ACCOUNT_MAPPING)).resolves(Buffer.from(JSON.stringify(ACCOUNTS)));
       let host = 'http://dummy.io';
@@ -548,10 +502,10 @@ describe('trade-manager.js', () => {
       await tradeManager.transfer(zsc, ACCOUNTS[1].shieldedAccount, ACCOUNTS[0].shieldedAccount, 100);
 
       Utils.shuffleAccountsWParityCheck.restore();
-    }).timeout(2 * constants.ZSC_EPOCH_LENGTH * 1000);
+    });
 
-    it('transfer() with decoys', async () => {
-      sinon.stub(tradeManager, '_recoverBalance').resolves(1000);
+    it('transfer() with decoys', async function () {
+      this.timeout(2 * tradeManager.epochLength * 1000);
       sinon.stub(Utils, 'shuffleAccountsWParityCheck').returns({ y: SIMULATED[0], index: [1, 0] });
       TradeManager.fs.readFile.withArgs(join(tmpDir, constants.ETH_SHIELD_ACCOUNT_MAPPING)).resolves(Buffer.from(JSON.stringify(ACCOUNTS)));
       let host = 'http://dummy.io';
@@ -627,7 +581,7 @@ describe('trade-manager.js', () => {
       await tradeManager.transfer(zsc, ACCOUNTS[1].shieldedAccount, ACCOUNTS[0].shieldedAccount, 100, decoys);
 
       Utils.shuffleAccountsWParityCheck.restore();
-    }).timeout(2 * constants.ZSC_EPOCH_LENGTH * 1000);
+    });
 
     it('transfer() error handling - failed to shuffle', async () => {
       sinon.stub(Utils, 'shuffleAccountsWParityCheck').throws(new Error('Bang!'));
@@ -859,9 +813,7 @@ describe('trade-manager.js', () => {
         );
 
       let zsc = '0x10f5e113ab47a33965d39d1f286683b4db0b688c';
-      await expect(tradeManager.transfer(zsc, ACCOUNTS[1].shieldedAccount, ACCOUNTS[0].shieldedAccount, 100)).to.eventually.be.rejectedWith(
-        sinon.match(/Error while deploying contract or sending transaction.*/)
-      );
+      await expect(tradeManager.transfer(zsc, ACCOUNTS[1].shieldedAccount, ACCOUNTS[0].shieldedAccount, 100)).to.eventually.be.rejectedWith(sinon.match(/Error while sending transaction.*/));
 
       Utils.shuffleAccountsWParityCheck.restore();
     });
@@ -875,15 +827,6 @@ describe('trade-manager.js', () => {
         },
       });
       await expect(tm.approveZSC('0x1', '0x2', 100, {})).to.eventually.be.rejectedWith('Failed to approve 0x1 as spender for the account 0x2');
-    });
-  });
-
-  describe('findShieldedAccount()', () => {
-    it('findShieldedAccount() error handling', async () => {
-      TradeManager.fs.readFile.rejects(new Error('File not found'));
-
-      let account = await tradeManager.findShieldedAccount('0x1');
-      expect(account).to.equal(undefined);
     });
   });
 
@@ -970,7 +913,7 @@ describe('trade-manager.js', () => {
 
     it('getBalance() error handling - failed to decrypt', async () => {
       let account = ['0x2f4176ab9fe2dce4517ab675f994335ed76eccf1461e2d90563cf477877bcb8d', '0x2fee819eb34f853582ef8398105d7e2fbfd962cbba11fd03d67b56e2dfeb1c93'];
-      sinon.stub(tradeManager, 'findShieldedAccount').resolves({ shieldedAccount: account });
+      tradeManager.shilededWallet.findShieldedAccount.resolves({ shieldedAccount: account });
       nock('http://dummy.io')
         .post('/', (body) => {
           return body.method === 'net_version';

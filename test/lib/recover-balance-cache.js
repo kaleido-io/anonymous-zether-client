@@ -14,7 +14,6 @@ const bn128 = require('@anonymous-zether/anonymous.js/src/utils/bn128.js');
 describe('recover-balance-test.js', () => {
   let RecoverBalanceCache, recoverBalanceCache, nodeCache;
   before(async () => {
-    process.env.KALEIDO_DATA_DIR = '/qdata/tmpDir';
     RecoverBalanceCache = require('../../lib/recover-balance-cache.js');
     nodeCache = new NodeCache({ stdTTL: 3, checkperiod: 1, useClones: false, maxKeys: 15, deleteOnExpire: true });
     recoverBalanceCache = new RecoverBalanceCache(10);
