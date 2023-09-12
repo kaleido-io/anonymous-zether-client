@@ -13,6 +13,7 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
+    "@anonymous-zether/anonymous.js": "file:../anonymous-zether/packages/anonymous.js",
     "bip39": "^3.1.0",
     "bn.js": "^5.2.1",
     "body-parser": "^1.18.2",
@@ -32,8 +33,7 @@
     "web3-eth": "^4.1.1",
     "web3-eth-abi": "^1.10.2",
     "web3-utils": "^1.10.2",
-    "winston": "^3.10.0",
-    "@anonymous-zether/anonymous.js": "file:../anonymous-zether/packages/anonymous.js"
+    "winston": "^3.10.0"
   },
   "devDependencies": {
     "@types/bip39": "^3.0.0",

@@ -45,4 +45,10 @@ describe('wallet-manager.js', () => {
   it('sign() returns successfully', async () => {
     await expect(wm.sign(account.address, {})).to.not.throw;
   });
+
+  it('keys DB returns the key correctly for signing after persisting it', async () => {
+    const account = await wm.newAccount('test-1');
+    const returnedKey = await wm.keysdb.get(account.address);
+    expect(account.privateKey).to.equal(returnedKey);
+  });
 });

@@ -7,7 +7,7 @@ const { Web3 } = require('web3');
 const nock = require('nock');
 
 const utils = require('../../lib/utils');
-const approveABI = require('../../lib/abi/approve.json');
+const erc20ABI = require('../../lib/abi/erc20.json');
 
 const SIGNED_INVOKE_TX =
   '0xf8a70480830f42409428054fd76f7d111ca9bd4e3cad1591af3b65094980b844095ea7b3000000000000000000000000831795af932e726f76706e1d502ff0795d99356a000000000000000000000000000000000000000000000000000000000000001e820a96a03da40fb66d656808cb96507420bde2e37db98e40e65190981ef5dfb3806a88dda0725f8ea058eccaf404262ce57ff41a54ef0d6e4d453a1da19cf93856cc102e72';
@@ -87,7 +87,7 @@ describe('Signing tests', () => {
   // For the following tests, accounts are generated with the following mnemonic
   // TEST_MNEMONIC = 'bone orchard able state tool unhappy describe candy attract enhance fluid boil';
   it('Signs a contract invoke transaction using index 1', async () => {
-    const abi = approveABI[0];
+    const abi = erc20ABI[4];
     let params = {
       to: '0x28054fd76f7D111ca9Bd4e3CAd1591aF3B650949',
       nonce: '0x4',
@@ -102,7 +102,7 @@ describe('Signing tests', () => {
   });
 
   it('Signs a contract invoke transaction using index 1 and alternative types of values', async () => {
-    const abi = approveABI[0];
+    const abi = erc20ABI[4];
     let params = {
       to: '0x28054fd76f7D111ca9Bd4e3CAd1591aF3B650949',
       nonce: 4,

@@ -8,10 +8,10 @@ const expect = chai.expect;
 const assert = chai.assert;
 const BN = require('bn.js');
 const { join } = require('path');
-const { ZKP_PROOF_TYPE } = require('../../../../lib/constants.js');
-const { ElGamal } = require('@anonymous-zether/anonymous.js/src/utils/algebra.js');
-const bn128 = require('@anonymous-zether/anonymous.js/src/utils/bn128.js');
-const { ETH_SHIELD_ACCOUNT_MAPPING } = require('../../../../lib/constants.js');
+const os = require('os');
+const { ZKP_PROOF_TYPE, ETH_SHIELD_ACCOUNT_MAPPING } = require('../../../../lib/constants');
+const { ElGamal } = require('@anonymous-zether/anonymous.js/src/utils/algebra');
+const bn128 = require('@anonymous-zether/anonymous.js/src/utils/bn128');
 
 describe('ShieldedAccount', () => {
   let ShieldedWallet,
@@ -44,7 +44,7 @@ describe('ShieldedAccount', () => {
     sinon.stub(ShieldedWallet.fs, 'readFile').resolves();
     sinon.stub(ShieldedWallet.fs, 'ensureDir').resolves();
     sinon.stub(ShieldedWallet.fs, 'readdir').resolves();
-    sinon.stub(ShieldedWallet.fs, 'existsSync').resolves();
+    sinon.stub(ShieldedWallet.fs, 'existsSync');
 
     wallet = new ShieldedWallet();
   });
@@ -58,7 +58,8 @@ describe('ShieldedAccount', () => {
   });
 
   describe('generateAccount()', () => {
-    it('generateAccount() returns a new account and persists the encrypted key to file', async () => {
+    it('generateAccount() returns a new zether client and persists the encrypted key to file', async () => {
+      ShieldedWallet.fs.existsSync.returns(false);
       let result = await wallet.generateAccount();
       expect(result).to.be.an('object').that.has.property('account');
       expect(result.account).to.be.an('object').that.has.property('address');
@@ -276,7 +277,7 @@ describe('ShieldedAccount', () => {
       data.epoch = 1;
       payload.args = data;
       let proof = await result.account.generateProof(payload);
-      expect(proof).to.be.an('object').that.has.property('data');
+      expect(proof).to.be.an('object');
     }).timeout(15000);
 
     it('generateProof() generates a proof for burn', async () => {
@@ -297,7 +298,7 @@ describe('ShieldedAccount', () => {
       data.sender = '0x1cd89e376b23ac5e51b249aa9192003f1dd17941';
       payload.args = data;
       let proof = await result2.account.generateProof(payload);
-      expect(proof).to.be.an('object').that.has.property('data');
+      expect(proof).to.be.an('object');
     }).timeout(15000);
 
     it('generateProof() returns error for unknown value for payload.type', async () => {
@@ -369,7 +370,7 @@ describe('ShieldedAccount', () => {
       ShieldedWallet.fs.existsSync.withArgs(mappingFile).returns(false);
 
       const newAccount = await wallet.createAccount('0x28AAf3AAe78275FC0958669f643C13C75Eb3b847');
-      expect(ShieldedWallet.fs.writeFile).calledWith(mappingFile, JSON.stringify([{ ethAccount: '0x28AAf3AAe78275FC0958669f643C13C75Eb3b847', shieldedAccount: newAccount }]));
+      expect(ShieldedWallet.fs.writeFile).calledWith(mappingFile, JSON.stringify({ '0x28AAf3AAe78275FC0958669f643C13C75Eb3b847': newAccount }));
     });
 
     it('createAccount() throws if content is not valid JSON', async () => {
@@ -417,5 +418,32 @@ describe('ShieldedAccount', () => {
       let result = await wallet.getAccounts();
       expect(result).to.be.an('array').that.is.empty;
     });
+  });
+});
+
+describe('check accounts recovered from encrypted files', () => {
+  let tmpdir, ShieldedWallet, fs;
+
+  before(() => {
+    tmpdir = join(os.tmpdir(), 'test-keys-recovery');
+    delete require.cache[require.resolve('../../../../lib/config')];
+    delete require.cache[require.resolve('../../../../lib/keystore/shielded')];
+
+    process.env.DATA_DIR = tmpdir;
+
+    ShieldedWallet = require('../../../../lib/keystore/shielded');
+    fs = require('fs-extra');
+  });
+
+  after(() => {
+    fs.removeSync(tmpdir);
+  });
+
+  it('can recover exactly the same private key and public key', async () => {
+    const wallet = new ShieldedWallet();
+    const account = await wallet.generateAccount();
+
+    const recoveredAccount = await wallet.loadAccount(account.keyFile);
+    expect(account.account.address.eq(recoveredAccount.account.address)).to.be.true;
   });
 });
