@@ -149,6 +149,11 @@ describe('trade-manager.js', () => {
     it.only('mint some tokens to Alice', async () => {
       await tradeManager.mint(alice.ethAccount.address, 10000);
     });
+
+    it.only('get balance of Alice in ERC20', async () => {
+      const balance = await tradeManager.getERC20Balance(alice.ethAccount.address);
+      expect(balance).to.equal('10000');
+    });
   });
 
   describe('approveZSC()', () => {
@@ -225,6 +230,11 @@ describe('trade-manager.js', () => {
       await tradeManager.fundAccount(alice.ethAccount.address, 1000);
 
       expect(nock.isDone());
+    });
+
+    it.only('get balance of Alice in ERC20', async () => {
+      const balance = await tradeManager.getERC20Balance(alice.ethAccount.address);
+      expect(balance).to.equal('9000');
     });
 
     it('fundAccount() error handling - can not locate shielded account', async () => {

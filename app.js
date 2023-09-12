@@ -7,11 +7,17 @@ const app = express();
 const apiRouter = new express.Router();
 const randomstring = require('randomstring');
 
-const constants = require('./lib/constants.js');
-const TradeManager = require('./lib/trade-manager.js');
+const { HDWallet } = require('./lib/keystore/hdwallet');
+const ShieldedWallet = require('./lib/keystore/shielded');
+const TradeManager = require('./lib/trade-manager');
+const WalletManager = require('./lib/wallet-manager');
+const { HttpError, getLogger } = require('./lib/utils');
+const Config = require('./lib/config');
+const ethWallet = new HDWallet('users');
+const shieldedWallet = new ShieldedWallet();
 const tradeManager = new TradeManager();
-
-const { getAccounts, createAccount, getContracts, postContract, fundAccount, transfer } = require('./lib/services.js');
+const walletManager = new WalletManager();
+const logger = getLogger();
 
 const PORT = 3000;
 
@@ -50,19 +56,14 @@ function errorHandler(err, req, res, next) {
   // eslint-disable-line
 
   // This is always logged - even when KALEIDO_SERVICE_CONTAINER is true
-  errHandlerLogger.err(`${req.method} ${req.url} - request failed`, err);
+  logger.error(`${req.method} ${req.url} - request failed`, err);
 
-  if (err instanceof PhoticError) {
-    err.send(res, req.headers['x-photic-request-id']);
-  } else if (err instanceof SyntaxError) {
-    res.status(400).send({
-      requestId: req.headers['x-photic-request-id'],
-      errorMessage: 'Unexpected token in JSON',
-    });
+  if (err instanceof HttpError) {
+    err.send(res, req.headers['x-request-id']);
   } else {
     res.status(500);
     res.send({
-      requestId: req.headers['x-photic-request-id'],
+      requestId: req.headers['x-request-id'],
       errorMessage: 'Internal error',
     });
   }
@@ -88,56 +89,78 @@ app.use('/api/v1', contentType, cors(), jsonBodyParser, requestLogger, apiRouter
 apiRouter.get(
   '/accounts',
   expressify(async (req) => {
-    return await getAccounts(req);
+    return await shieldedWallet.getAccounts();
   }, getHandler)
 );
 
 apiRouter.post(
   '/accounts',
   expressify(async (req) => {
-    return await createAccount(req);
+    const ethAccount = await walletManager.newAccount('users');
+    const shieldedAccount = await shieldedWallet.createAccount(ethAccount.address);
+    await tradeManager.registerAccount(ethAccount.address);
+    return { eth: ethAccount.address, shielded: shieldedAccount };
   }, postHandler)
 );
 
 apiRouter.post(
-  '/contracts',
+  '/mint',
   expressify(async (req) => {
-    return await postContract(req);
+    const { ethAddress, amount } = req.body;
+    if (!ethAddress) {
+      throw new HttpError('Must provide signing address to draw fund from');
+    }
+    if (!amount) {
+      throw new HttpError('Must provide funding amount');
+    }
+    return await tradeManager.mint(ethAddress, amount);
   }, postHandler)
 );
 
 apiRouter.post(
-  '/contracts/:contract_id/fund',
+  '/fund',
   expressify(async (req) => {
-    return await fundAccount(req.params.contract_id, req);
+    const { ethAddress, amount } = req.body;
+    if (!ethAddress) {
+      throw new HttpError('Must provide signing address to draw fund from');
+    }
+    if (!amount) {
+      throw new HttpError('Must provide funding amount');
+    }
+    return await tradeManager.fundAccount(ethAddress, amount);
   }, postHandler)
 );
 
 apiRouter.post(
-  '/contracts/:contract_id/transfer',
+  '/transfer',
   expressify(async (req) => {
     return await transfer(req.params.contract_id, req);
   }, postHandler)
 );
 
 apiRouter.post(
-  '/contracts/:contract_id/withdraw',
+  '/withdraw',
   expressify(async (req) => {
     return await withdraw(req.params.contract_id, req);
   }, postHandler)
 );
 
 apiRouter.get(
-  '/contracts',
+  '/accounts/:address/balance',
   expressify(async (req) => {
-    return await getContracts(req);
-  }, getHandler)
-);
-
-apiRouter.get(
-  '/contracts/:contract_id/balanceOf/:accountIndex',
-  expressify(async (req) => {
-    return await getBalance(req.params.contract_id, req.params.accountIndex);
+    const address = req.params.address;
+    let balance;
+    if (address.match(/^0x[0-9a-fA-F]{40}$/)) {
+      // query for the ERC20 balance
+      balance = await tradeManager.getERC20Balance(address);
+    } else if (address.match(/^0x[0-9a-f]{64},0x[0-9a-f]{64}$/)) {
+      // query for the Zether balance
+      const shieldedAddress = address.split(',');
+      balance = await tradeManager.getBalance(shieldedAddress);
+    } else {
+      throw new HttpError('Unknown address format', 400);
+    }
+    return { balance: balance };
   }, getHandler)
 );
 
@@ -156,12 +179,29 @@ function getHandler(req, res, result) {
   res.send(JSON.stringify(result, null, 2));
 }
 
-const serverPromise = tradeManager.init().then(() => {
-  return app.listen(PORT, () => logger.info('Listening on port ' + PORT));
-});
+function printConfig() {
+  logger.info(`Configurations:`);
+  logger.info(`\t    data dir: ${Config.getDataDir()}`);
+  logger.info(`\t     eth URL: ${Config.getEthUrl()}`);
+  logger.info(`\t    chain ID: ${Config.getChainId()}`);
+  logger.info(`\t       erc20: ${Config.getERC20Address()}`);
+  logger.info(`\t         ZSC: ${Config.getZSCAddress()}`);
+  logger.info(`\tepoch length: ${Config.getEpochLength()} seconds`);
+}
+
+const serverPromise = tradeManager
+  .init()
+  .then(async () => {
+    await walletManager.init();
+    await ethWallet.init();
+    walletManager.addWallet('users', ethWallet);
+  })
+  .then(() => {
+    printConfig();
+    return app.listen(PORT, () => logger.info('Listening on port ' + PORT));
+  });
 
 module.exports = {
   app,
   serverPromise,
-  serviceutil,
 };
