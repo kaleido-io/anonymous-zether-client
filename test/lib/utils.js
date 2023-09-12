@@ -8,6 +8,8 @@ const nock = require('nock');
 
 const utils = require('../../lib/utils');
 const erc20ABI = require('../../lib/abi/erc20.json');
+const bn128Utils = require('@anonymous-zether/anonymous.js/src/utils/utils');
+const bn128 = require('@anonymous-zether/anonymous.js/src/utils/bn128');
 
 const SIGNED_INVOKE_TX =
   '0xf8a70480830f42409428054fd76f7d111ca9bd4e3cad1591af3b65094980b844095ea7b3000000000000000000000000831795af932e726f76706e1d502ff0795d99356a000000000000000000000000000000000000000000000000000000000000001e820a96a03da40fb66d656808cb96507420bde2e37db98e40e65190981ef5dfb3806a88dda0725f8ea058eccaf404262ce57ff41a54ef0d6e4d453a1da19cf93856cc102e72';
@@ -114,5 +116,20 @@ describe('Signing tests', () => {
 
     let signedTx = await utils.signTransaction(web3, params, account);
     expect(signedTx.rawTransaction).to.equal(SIGNED_INVOKE_TX);
+  });
+
+  it('shuffles accounts', async () => {
+    const accounts = [];
+    for (let i = 0; i < 8; i++) {
+      const newAccount = bn128Utils.createAccount();
+      accounts.push(newAccount.y);
+    }
+    const sender = accounts[0];
+    const receiver = accounts[1];
+    const senderAddress = bn128.serialize(sender);
+    const receiverAddress = bn128.serialize(receiver);
+    const { y, index } = utils.shuffleAccountsWParityCheck(accounts, sender, receiver);
+    expect(y[index[0]]).deep.equal(sender);
+    expect(y[index[1]]).deep.equal(receiver);
   });
 });

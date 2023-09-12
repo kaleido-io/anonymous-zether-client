@@ -11,7 +11,7 @@ const { HDWallet } = require('./lib/keystore/hdwallet');
 const ShieldedWallet = require('./lib/keystore/shielded');
 const TradeManager = require('./lib/trade-manager');
 const WalletManager = require('./lib/wallet-manager');
-const { HttpError, getLogger } = require('./lib/utils');
+const { HttpError, getLogger, isEthereumAddress, isShieldedAddress } = require('./lib/utils');
 const Config = require('./lib/config');
 const ethWallet = new HDWallet('users');
 const shieldedWallet = new ShieldedWallet();
@@ -134,14 +134,33 @@ apiRouter.post(
 apiRouter.post(
   '/transfer',
   expressify(async (req) => {
-    return await transfer(req.params.contract_id, req);
+    const { sender, receiver, amount } = req.body;
+    if (!isShieldedAddress(sender)) {
+      throw new HttpError('Must provide sender address in shielded address format');
+    }
+    if (!isShieldedAddress(receiver)) {
+      throw new HttpError('Must provide receiver address in shielded address format');
+    }
+    const shieldedSenderAddress = sender.split(',');
+    const shieldedReceiverAddress = receiver.split(',');
+    if (!amount) {
+      throw new HttpError('Must provide the transfer amount');
+    }
+    return await tradeManager.transfer(shieldedSenderAddress, shieldedReceiverAddress, amount);
   }, postHandler)
 );
 
 apiRouter.post(
   '/withdraw',
   expressify(async (req) => {
-    return await withdraw(req.params.contract_id, req);
+    const { ethAddress, amount } = req.body;
+    if (!isEthereumAddress(ethAddress)) {
+      throw new HttpError('Must provide the ethereum address to withdraw funds to');
+    }
+    if (!amount) {
+      throw new HttpError('Must provide the withdraw amount');
+    }
+    return await tradeManager.withdraw(ethAddress, amount);
   }, postHandler)
 );
 
@@ -150,10 +169,10 @@ apiRouter.get(
   expressify(async (req) => {
     const address = req.params.address;
     let balance;
-    if (address.match(/^0x[0-9a-fA-F]{40}$/)) {
+    if (isEthereumAddress(address)) {
       // query for the ERC20 balance
       balance = await tradeManager.getERC20Balance(address);
-    } else if (address.match(/^0x[0-9a-f]{64},0x[0-9a-f]{64}$/)) {
+    } else if (isShieldedAddress(address)) {
       // query for the Zether balance
       const shieldedAddress = address.split(',');
       balance = await tradeManager.getBalance(shieldedAddress);
@@ -192,6 +211,7 @@ function printConfig() {
 const serverPromise = tradeManager
   .init()
   .then(async () => {
+    await tradeManager.initBalanceCache();
     await walletManager.init();
     await ethWallet.init();
     walletManager.addWallet('users', ethWallet);
