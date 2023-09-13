@@ -67,9 +67,9 @@ describe('trade-manager.js', () => {
     this.timeout(5000);
     tmpdir = join(os.tmpdir(), 'trade-manager-test');
     reset(() => {
-      process.env.ERC20_ADDRESS = '0x474cb0d27e4593738d250c9755265D5c8290C08D';
-      process.env.ZSC_ADDRESS = '0xC34dD8eA9f74E4De3fd1C0C3671c81CcB60A4CCd';
-      process.env.CHAIN_ID = '1337';
+      process.env.ERC20_ADDRESS = '0x566735857019092929bc83b6FeDf780e314BafCa';
+      process.env.ZSC_ADDRESS = '0x981942E57bA8eF76b65945c95262D46ebeC9D2A2';
+      process.env.CHAIN_ID = 1337;
       process.env.ADMIN_SIGNER = '0x7950ee77d50fd245f663bded5a15f150baeb5982215bb3315239dd762c72bb34';
       process.env.ETH_URL = 'ws://localhost:7545';
       process.env.DATA_DIR = tmpdir;
@@ -227,14 +227,14 @@ describe('trade-manager.js', () => {
       //     })
       //   );
 
-      await tradeManager.fundAccount(alice.ethAccount.address, 1000);
+      await tradeManager.fundAccount(alice.ethAccount.address, 100);
 
       expect(nock.isDone());
     });
 
     it.only('get balance of Alice in ERC20', async () => {
       const balance = await tradeManager.getERC20Balance(alice.ethAccount.address);
-      expect(balance).to.equal('9000');
+      expect(balance).to.equal('9900');
     });
 
     it('fundAccount() error handling - can not locate shielded account', async () => {
@@ -280,7 +280,7 @@ describe('trade-manager.js', () => {
 
       let result = await tradeManager.getBalance(alice.shieldedAccount);
 
-      expect(result).to.equal(1000);
+      expect(result).to.equal(100);
     });
 
     describe('getBalance() error handling', () => {
@@ -346,7 +346,7 @@ describe('trade-manager.js', () => {
     it.only('withdraw() should withdraw from an shielded account with zsc', async function () {
       this.timeout(2 * tradeManager.epochLength * 1000);
       await sleep(tradeManager.epochLength * 1000);
-      await tradeManager.withdraw(alice.ethAccount.address, 100);
+      await tradeManager.withdraw(alice.ethAccount.address, 10);
     });
 
     it('withdraw() error handling - can not locate local shielded account', async () => {
