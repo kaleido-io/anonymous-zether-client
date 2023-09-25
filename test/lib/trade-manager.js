@@ -67,8 +67,8 @@ describe('trade-manager.js', () => {
     this.timeout(5000);
     tmpdir = join(os.tmpdir(), 'trade-manager-test');
     reset(() => {
-      process.env.ERC20_ADDRESS = '0x566735857019092929bc83b6FeDf780e314BafCa';
-      process.env.ZSC_ADDRESS = '0x981942E57bA8eF76b65945c95262D46ebeC9D2A2';
+      process.env.ERC20_ADDRESS = '0xd6a9f04909568d7D30075de93007Fb702F81E5A1';
+      process.env.ZSC_ADDRESS = '0x0469A113f5d73090960790cf1f221e8202EC8154';
       process.env.CHAIN_ID = 1337;
       process.env.ADMIN_SIGNER = '0x7950ee77d50fd245f663bded5a15f150baeb5982215bb3315239dd762c72bb34';
       process.env.ETH_URL = 'ws://localhost:7545';
