@@ -23,7 +23,7 @@ describe('Single account generation tests', () => {
 
 describe('Range of accounts generation tests', () => {
   it('Validates the account generated at indices 0 - 9', async () => {
-    let account = await new Generator(TEST_MNEMONIC).generateNodes([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    const account = await new Generator(TEST_MNEMONIC).generateNodes([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     expect(account).to.be.an('array');
     expect(account.length).to.equal(10);
     expect(account[0].address).to.equal('0x28AAf3AAe78275FC0958669f643C13C75Eb3b847');

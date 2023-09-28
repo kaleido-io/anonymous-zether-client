@@ -25,7 +25,6 @@ function contentType(req, res, next) {
   if ((req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') && !req.is('application/json') && !(req.headers && req.headers['kaleido-custom-content-type'] === 'true')) {
     res.status(400);
     res.send({ message: 'Invalid content type' });
-    return;
   } else {
     next();
   }
@@ -33,9 +32,9 @@ function contentType(req, res, next) {
 
 function requestLogger(req, res, next) {
   // Intercept end to do logging
-  let _end = res.end.bind(res);
-  let requestId = newRequestId();
-  let start = Date.now();
+  const _end = res.end.bind(res);
+  const requestId = newRequestId();
+  const start = Date.now();
   logger.info(`--> ${requestId} ${req.method} ${req.path}`);
   res.end = (data, encoding) => {
     logger.info(`<-- ${requestId} ${req.method} ${req.path} [${res.statusCode}] (time=${Date.now() - start}ms)`);
@@ -52,7 +51,7 @@ function newRequestId() {
   });
 }
 
-function errorHandler(err, req, res, next) {
+function errorHandler(err, req, res) {
   // eslint-disable-line
 
   // This is always logged - even when KALEIDO_SERVICE_CONTAINER is true
@@ -88,14 +87,14 @@ app.use('/api/v1', contentType, cors(), jsonBodyParser, requestLogger, apiRouter
 
 apiRouter.get(
   '/accounts',
-  expressify(async (req) => {
+  expressify(async () => {
     return await shieldedWallet.getAccounts();
   }, getHandler)
 );
 
 apiRouter.post(
   '/accounts',
-  expressify(async (req) => {
+  expressify(async () => {
     const ethAccount = await walletManager.newAccount('users');
     const shieldedAccount = await shieldedWallet.createAccount(ethAccount.address);
     await tradeManager.registerAccount(ethAccount.address);
@@ -179,7 +178,7 @@ apiRouter.get(
     } else {
       throw new HttpError('Unknown address format', 400);
     }
-    return { balance: balance };
+    return { balance };
   }, getHandler)
 );
 
@@ -199,7 +198,7 @@ function getHandler(req, res, result) {
 }
 
 function printConfig() {
-  logger.info(`Configurations:`);
+  logger.info('Configurations:');
   logger.info(`\t    data dir: ${Config.getDataDir()}`);
   logger.info(`\t     eth URL: ${Config.getEthUrl()}`);
   logger.info(`\t    chain ID: ${Config.getChainId()}`);

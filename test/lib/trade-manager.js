@@ -9,14 +9,12 @@ const { join } = require('path');
 const os = require('os');
 const fs = require('fs-extra');
 const nock = require('nock');
-const AbiCoder = require('web3-eth-abi');
 const BN = require('bn.js');
 
 const { ElGamal } = require('@anonymous-zether/anonymous.js/src/utils/algebra.js');
 const bn128 = require('@anonymous-zether/anonymous.js/src/utils/bn128');
 const bn128Utils = require('@anonymous-zether/anonymous.js/src/utils/utils');
 const rpc = require('./mock-rpc.js');
-const constants = require('../../lib/constants.js');
 const Prover = require('../../lib/keystore/shielded/prover.js');
 
 function reset(setup) {
@@ -39,8 +37,8 @@ function reset(setup) {
 
 const sleep = require('util').promisify(require('timers').setTimeout);
 
-describe('trade-manager.js - end to end test', () => {
-  let TradeManager, wm, shielded, tmpdir, tradeManager, Utils;
+describe.only('trade-manager.js - end to end test', () => {
+  let TradeManager, wm, shielded, tmpdir, tradeManager, Utils, epochLength;
   let alice, bob;
 
   before(async function () {
@@ -55,6 +53,7 @@ describe('trade-manager.js - end to end test', () => {
       process.env.ETH_URL = 'ws://127.0.0.1:8545';
       process.env.DATA_DIR = tmpdir;
     });
+    epochLength = parseInt(process.env.ZSC_EPOCH_LENGTH);
 
     const { HDWallet } = require('../../lib/keystore/hdwallet');
     const ShieldedAccount = require('../../lib/keystore/shielded');
@@ -139,26 +138,26 @@ describe('trade-manager.js - end to end test', () => {
   });
 
   it('getBalance() for given ZSC and shielded account index', async function () {
-    this.timeout(2 * tradeManager.epochLength * 1000);
-    var wait = (Utils.timeBeforeNextEpoch() + 1) * 1000;
+    this.timeout(3 * epochLength * 1000);
+    const wait = (Utils.timeBeforeNextEpoch() + 1) * 1000;
     await sleep(wait);
-    let result = await tradeManager.getBalance(alice.shieldedAccount);
+    const result = await tradeManager.getBalance(alice.shieldedAccount);
     expect(result).to.equal(100);
   });
 
   it('withdraw() should withdraw from an shielded account with zsc', async function () {
-    this.timeout(2 * tradeManager.epochLength * 1000);
-    await sleep(tradeManager.epochLength * 1000);
+    this.timeout(3 * epochLength * 1000);
+    await sleep(epochLength * 1000);
     await tradeManager.withdraw(alice.ethAccount.address, 10);
   });
 
   it('transfer() should transfer from an shielded account to another shielded with zsc and erc20 balance must be updated', async function () {
-    this.timeout(2 * tradeManager.epochLength * 1000);
+    this.timeout(3 * epochLength * 1000);
     await tradeManager.transfer(alice.shieldedAccount, bob.shieldedAccount, 10);
   });
 
   it('transfer() with decoys', async function () {
-    this.timeout(2 * tradeManager.epochLength * 1000);
+    this.timeout(3 * epochLength * 1000);
     const decoy1_ethAccount = await wm.newAccount('test-hdwallet');
     const decoy1_shieldedAccount = await shielded.createAccount(decoy1_ethAccount.address);
     await tradeManager.registerAccount(decoy1_ethAccount.address);
@@ -166,7 +165,7 @@ describe('trade-manager.js - end to end test', () => {
     const decoy2_shieldedAccount = await shielded.createAccount(decoy2_ethAccount.address);
     await tradeManager.registerAccount(decoy2_ethAccount.address);
 
-    let decoys = [decoy1_shieldedAccount, decoy2_shieldedAccount];
+    const decoys = [decoy1_shieldedAccount, decoy2_shieldedAccount];
     await tradeManager.transfer(alice.shieldedAccount, bob.shieldedAccount, 10, decoys);
   });
 });
@@ -197,7 +196,7 @@ describe('decrypt balances', () => {
     const testAccount = bn128Utils.createAccount();
     const testBalance = new BN(100, 10);
     const randomness = bn128.randomScalar();
-    const cipher_left = ElGamal.base['g'].mul(testBalance).add(testAccount.y.mul(randomness));
+    const cipher_left = ElGamal.base.g.mul(testBalance).add(testAccount.y.mul(randomness));
     const cipher_right = bn128.curve.g.mul(randomness);
     const prover = new Prover(testAccount.x, testAccount.y);
     const balance = await tradeManager._decryptEncryptedBalance([bn128.serialize(cipher_left), bn128.serialize(cipher_right)], prover);
@@ -297,7 +296,7 @@ describe('error handling', () => {
       it('getBalance() error handling - failed to get local shieldedAccount', async () => {
         tm.shieldedWallet.loadAccountByPublicKey.resolves(undefined);
 
-        let address = ['0x1c2a73714f5a2366f16436de9242dfc2587cf75c25175031c3d3266a8236b709', '0x086e14bab439a55ce39a92ca5eed7948937918c36717f0de2f10c5294bb5e11d'];
+        const address = ['0x1c2a73714f5a2366f16436de9242dfc2587cf75c25175031c3d3266a8236b709', '0x086e14bab439a55ce39a92ca5eed7948937918c36717f0de2f10c5294bb5e11d'];
         await expect(tm.getBalance(address)).to.eventually.be.rejectedWith(
           'Shielded account 0x1c2a73714f5a2366f16436de9242dfc2587cf75c25175031c3d3266a8236b709,0x086e14bab439a55ce39a92ca5eed7948937918c36717f0de2f10c5294bb5e11d does not exist in this service locally, can not be used to decrypt balances'
         );
@@ -305,7 +304,7 @@ describe('error handling', () => {
 
       it('getBalance() error handling - failed to call smart contract simulateAccounts()', async () => {
         const bytes = Buffer.from('1234', 'hex');
-        let address = { x: bytes, y: bytes, getX: () => bytes, getY: () => bytes };
+        const address = { x: bytes, y: bytes, getX: () => bytes, getY: () => bytes };
         tm.shieldedWallet.loadAccountByPublicKey.resolves({ account: { address } });
         nock('http://127.0.0.1:8545')
           .post('/', (body) => {
@@ -345,7 +344,7 @@ describe('error handling', () => {
         const targetAccount = ['0x2f4176ab9fe2dce4517ab675f994335ed76eccf1461e2d90563cf477877bcb8d', '0x2fee819eb34f853582ef8398105d7e2fbfd962cbba11fd03d67b56e2dfeb1c93'];
         tm.shieldedWallet.findShieldedAccount.resolves(targetAccount);
         const bytes = Buffer.from('1234', 'hex');
-        let address = { x: bytes, y: bytes, getX: () => bytes, getY: () => bytes };
+        const address = { x: bytes, y: bytes, getX: () => bytes, getY: () => bytes };
         tm.shieldedWallet.loadAccountByPublicKey.resolves({ account: { address } });
         sinon.stub(tm, '_checkBalance').rejects(new Error('Bang!'));
 
@@ -356,7 +355,7 @@ describe('error handling', () => {
         const targetAccount = ['0x2f4176ab9fe2dce4517ab675f994335ed76eccf1461e2d90563cf477877bcb8d', '0x2fee819eb34f853582ef8398105d7e2fbfd962cbba11fd03d67b56e2dfeb1c93'];
         tm.shieldedWallet.findShieldedAccount.resolves(targetAccount);
         const bytes = Buffer.from('1234', 'hex');
-        let address = { x: bytes, y: bytes, getX: () => bytes, getY: () => bytes };
+        const address = { x: bytes, y: bytes, getX: () => bytes, getY: () => bytes };
         tm.shieldedWallet.loadAccountByPublicKey.resolves({ account: { address } });
         sinon.stub(tm, '_simulateAccounts').resolves(['0x1']);
         sinon.stub(tm, '_decryptEncryptedBalance').resolves(50);
@@ -367,7 +366,7 @@ describe('error handling', () => {
         const targetAccount = ['0x2f4176ab9fe2dce4517ab675f994335ed76eccf1461e2d90563cf477877bcb8d', '0x2fee819eb34f853582ef8398105d7e2fbfd962cbba11fd03d67b56e2dfeb1c93'];
         tm.shieldedWallet.findShieldedAccount.resolves(targetAccount);
         const bytes = Buffer.from('1234', 'hex');
-        let address = { x: bytes, y: bytes, getX: () => bytes, getY: () => bytes };
+        const address = { x: bytes, y: bytes, getX: () => bytes, getY: () => bytes };
         tm.shieldedWallet.loadAccountByPublicKey.resolves({ account: { address, generateProof: () => ({ proof: '0x1', u: '0x2' }) } });
         sinon.stub(tm, 'sendTransaction').rejects(new Error('Bang!'));
         sinon.stub(tm, '_checkBalance').resolves({ balance: 150, shieldedAccountStates: [] });
@@ -399,7 +398,7 @@ describe('error handling', () => {
         const address = ['0x2f4176ab9fe2dce4517ab675f994335ed76eccf1461e2d90563cf477877bcb8d', '0x2fee819eb34f853582ef8398105d7e2fbfd962cbba11fd03d67b56e2dfeb1c93'];
         tm.shieldedWallet.loadAccountByPublicKey.resolves({ account: { address, generateProof: () => ({ proof: '0x1', u: '0x2' }) } });
         sinon.stub(Utils, 'shuffleAccountsWParityCheck').returns({ y: [account, account], index: [1, 0] });
-        await expect(tm.transfer(address, address, 100, [address, address])).to.eventually.be.rejectedWith(`Failed to call simulateAccounts()`);
+        await expect(tm.transfer(address, address, 100, [address, address])).to.eventually.be.rejectedWith('Failed to call simulateAccounts()');
         Utils.shuffleAccountsWParityCheck.restore();
       });
 
@@ -414,7 +413,7 @@ describe('error handling', () => {
         sinon.stub(tm, '_simulateAccounts').resolves(['0x1']);
         sinon.stub(tm, '_decryptEncryptedBalance').resolves(50);
         tm.shieldedWallet.loadAccountByPublicKey.resolves({ account: { address, generateProof: () => ({ proof: '0x1', u: '0x2' }) } });
-        await expect(tm.transfer(address, address, 100, [address, address])).to.eventually.be.rejectedWith(`Amount to withdraw must be less than or equal to shielded funds`);
+        await expect(tm.transfer(address, address, 100, [address, address])).to.eventually.be.rejectedWith('Amount to withdraw must be less than or equal to shielded funds');
       });
 
       it('transfer() error handling - failed to call smart contract transfer()', async () => {
@@ -425,7 +424,7 @@ describe('error handling', () => {
         sinon.stub(tm, '_handleTxError').resolves();
         sinon.stub(tm.walletManager, 'newAccount').resolves({ address: '0x1' });
         tm.shieldedWallet.loadAccountByPublicKey.resolves({ account: { address, generateProof: () => ({ proof: '0x1', u: '0x2' }) } });
-        await expect(tm.transfer(address, address, 100, [address, address])).to.eventually.be.rejectedWith(`Failed to complete shielded transfer`);
+        await expect(tm.transfer(address, address, 100, [address, address])).to.eventually.be.rejectedWith('Failed to complete shielded transfer');
       });
     });
   });

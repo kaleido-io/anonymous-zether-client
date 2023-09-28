@@ -4,7 +4,6 @@ const chai = require('chai');
 const sinon = require('sinon');
 chai.use(require('sinon-chai'));
 const expect = chai.expect;
-const nock = require('nock');
 const { join } = require('path');
 const { homedir } = require('os');
 
@@ -33,16 +32,16 @@ describe('hdwallet', () => {
 
   describe('SecretStore', () => {
     it('creates a new instance and initialize it with default location', async () => {
-      let store = new SecretStore();
+      const store = new SecretStore();
       await store.init();
 
       expect(SecretStore.fs.ensureDir).calledWith(storeDir);
     });
 
     it('adds a new secret without a mnemonic and returns a 12-word mnemonic', async () => {
-      let store = new SecretStore();
+      const store = new SecretStore();
       await store.init();
-      let result = await store.addWallet('test-1');
+      const result = await store.addWallet('test-1');
 
       expect(result.id).to.equal('test-1');
       expect(result.secret).to.match(/([a-z]+ ){11}[a-z]+/);
@@ -51,9 +50,9 @@ describe('hdwallet', () => {
     it('gets all existing secrets', async () => {
       SecretStore.fs.readdir.resolves(['test-1.wallet', 'test-2.wallet']);
 
-      let store = new SecretStore();
+      const store = new SecretStore();
       await store.init();
-      let result = await store.getWallets();
+      const result = await store.getWallets();
 
       expect(result).to.deep.equal(['test-1', 'test-2']);
     });
@@ -62,9 +61,9 @@ describe('hdwallet', () => {
       SecretStore.fs.readdir.resolves(['dummyId.wallet']);
       SecretStore.fs.readFile.withArgs(join(storeDir, 'dummyId.wallet')).resolves('some secret string');
 
-      let store = new SecretStore();
+      const store = new SecretStore();
       await store.init();
-      let result = await store.getWallet('dummyId');
+      const result = await store.getWallet('dummyId');
 
       expect(result).to.deep.equal({ id: 'dummyId', secret: 'some secret string' });
     });
@@ -72,7 +71,7 @@ describe('hdwallet', () => {
     it('throws when trying to delete a non-existent secret', async () => {
       SecretStore.fs.access.rejects();
 
-      let store = new SecretStore();
+      const store = new SecretStore();
       await store.init();
 
       try {
@@ -88,7 +87,7 @@ describe('hdwallet', () => {
       SecretStore.fs.access.resolves();
       SecretStore.fs.remove.withArgs(join(storeDir, 'dummyId')).resolves();
 
-      let store = new SecretStore();
+      const store = new SecretStore();
       await store.init();
       await store.deleteSecret('dummyId');
 
@@ -106,7 +105,7 @@ describe('hdwallet', () => {
     it('getAccount()', async () => {
       const wallet = new HDWallet('test-2');
       await wallet.init();
-      let signers = await wallet.getAccount(0);
+      const signers = await wallet.getAccount(0);
       expect(signers).to.be.an('object').that.has.property('address');
       expect(signers).to.be.an('object').that.has.property('privateKey');
     });

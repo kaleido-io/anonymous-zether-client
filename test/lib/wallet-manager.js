@@ -6,7 +6,6 @@ const expect = chai.expect;
 const { join } = require('path');
 const os = require('os');
 const fs = require('fs-extra');
-const { signTransaction } = require('../../lib/utils');
 
 describe('wallet-manager.js', () => {
   let tmpdir, wm, account, HDWallet;
