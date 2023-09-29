@@ -223,4 +223,5 @@ const serverPromise = tradeManager
 module.exports = {
   app,
   serverPromise,
+  tradeManager,
 };

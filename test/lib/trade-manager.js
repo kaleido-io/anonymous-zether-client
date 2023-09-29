@@ -14,45 +14,18 @@ const BN = require('bn.js');
 const { ElGamal } = require('@anonymous-zether/anonymous.js/src/utils/algebra.js');
 const bn128 = require('@anonymous-zether/anonymous.js/src/utils/bn128');
 const bn128Utils = require('@anonymous-zether/anonymous.js/src/utils/utils');
-const rpc = require('./mock-rpc.js');
+const { rpc, reset, fullSetup } = require('./test-utils.js');
 const Prover = require('../../lib/keystore/shielded/prover.js');
-
-function reset(setup) {
-  delete require.cache[require.resolve('../../lib/keystore/admin')];
-  delete require.cache[require.resolve('../../lib/keystore/hdwallet')];
-  delete require.cache[require.resolve('../../lib/keystore/shielded')];
-  delete require.cache[require.resolve('../../lib/trade-manager.js')];
-  delete require.cache[require.resolve('../../lib/wallet-manager.js')];
-  delete require.cache[require.resolve('../../lib/utils.js')];
-  delete require.cache[require.resolve('../../lib/config.js')];
-  delete process.env.ERC20_ADDRESS;
-  delete process.env.ZSC_ADDRESS;
-  delete process.env.ZSC_EPOCH_LENGTH;
-  delete process.env.CHAIN_ID;
-  delete process.env.ADMIN_SIGNER;
-  delete process.env.ETH_URL;
-  delete process.env.DATA_DIR;
-  setup();
-}
 
 const sleep = require('util').promisify(require('timers').setTimeout);
 
-describe.only('trade-manager.js - end to end test', () => {
+describe('trade-manager.js - end to end test', () => {
   let TradeManager, wm, shielded, tmpdir, tradeManager, Utils, epochLength;
   let alice, bob;
 
   before(async function () {
     this.timeout(5000);
-    tmpdir = join(os.tmpdir(), 'trade-manager-test');
-    reset(() => {
-      process.env.ERC20_ADDRESS = '0x9101179e67001879277c11d420C7317dc5415bdA';
-      process.env.ZSC_ADDRESS = '0x849Cf796E88E19F3f7603c82536eE73DF6140E89';
-      process.env.ZSC_EPOCH_LENGTH = 6;
-      process.env.CHAIN_ID = 1337;
-      process.env.ADMIN_SIGNER = '0x7950ee77d50fd245f663bded5a15f150baeb5982215bb3315239dd762c72bb34';
-      process.env.ETH_URL = 'ws://127.0.0.1:8545';
-      process.env.DATA_DIR = tmpdir;
-    });
+    tmpdir = fullSetup('zether-trade-manager-test');
     epochLength = parseInt(process.env.ZSC_EPOCH_LENGTH);
 
     const { HDWallet } = require('../../lib/keystore/hdwallet');
