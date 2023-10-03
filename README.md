@@ -1,6 +1,13 @@
 # Overview
 
-A client implementation for [anonymous-zether](https://github.com/Consensys/anonymous-zether) with a REST interface.
+A sample client implementation for [anonymous-zether](https://github.com/Consensys/anonymous-zether) that demonstrates these essential features to use the Anonymous Zether protocol in a solution:
+
+- a REST interface
+- key management: the client manages 3 types of signing accounts:
+  - one-time signing keys for submitting zether transfer transactions
+  - managed wallet that can easily dispense billions of signing keys to use by authenticated users. This can be handy if an application wants to present to their end users a web2 experience without requiring them to manage signing keys. A typical technique is mapping user identities (such as OIDC subject ID) to signing keys such that each authenticated user has their own signing account
+  - an admin account that was used to deploy the ERC20 contract, which has the minting privileges
+- pre-calculated cache to resolve the balance. After decrypting the onchain state that represents an account's Zether balance, the application gets the `g^b` value, where `b` is the actual balance. This step requires brute force computation to resolve the value `b`. A cache is provided for all values of `b` in the range 0 - 100,000 to allow this step to be completed instantaneously.
 
 # Dependency
 
