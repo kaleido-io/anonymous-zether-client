@@ -118,6 +118,7 @@ apiRouter.post(
   '/accounts',
   expressify(async () => {
     const ethAccount = await walletManager.newAccount('users');
+    await tradeManager.enableRealDigitalAccount(ethAccount.address);
     const shieldedAccount = await shieldedWallet.createAccount(ethAccount.address);
     await tradeManager.zetherTokenClient.registerAccount(ethAccount.address);
     return { eth: ethAccount.address, shielded: shieldedAccount };
