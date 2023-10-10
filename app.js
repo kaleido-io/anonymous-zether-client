@@ -128,7 +128,11 @@ apiRouter.post(
     if (!amount) {
       throw new HttpError('Must provide funding amount');
     }
-    return await tradeManager.mint(ethAddress, amount);
+    const txHash = await tradeManager.mint(ethAddress, amount);
+    return {
+      success: true,
+      transactionHash: txHash,
+    };
   }, postHandler)
 );
 
@@ -142,7 +146,11 @@ apiRouter.post(
     if (!amount) {
       throw new HttpError('Must provide funding amount');
     }
-    return await tradeManager.fundAccount(ethAddress, amount);
+    const txHash = await tradeManager.fundAccount(ethAddress, amount);
+    return {
+      success: true,
+      transactionHash: txHash,
+    };
   }, postHandler)
 );
 
@@ -161,7 +169,11 @@ apiRouter.post(
     if (!amount) {
       throw new HttpError('Must provide the transfer amount');
     }
-    return await tradeManager.transfer(shieldedSenderAddress, shieldedReceiverAddress, amount);
+    const txHash = await tradeManager.transfer(shieldedSenderAddress, shieldedReceiverAddress, amount);
+    return {
+      success: true,
+      transactionHash: txHash,
+    };
   }, postHandler)
 );
 
@@ -175,7 +187,11 @@ apiRouter.post(
     if (!amount) {
       throw new HttpError('Must provide the withdraw amount');
     }
-    return await tradeManager.withdraw(ethAddress, amount);
+    const txHash = await tradeManager.withdraw(ethAddress, amount);
+    return {
+      success: true,
+      transactionHash: txHash,
+    };
   }, postHandler)
 );
 
