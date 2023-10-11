@@ -209,7 +209,7 @@ $ curl -H "Content-Type: application/json" -d '{"sender":"0x088e0c151ce3828ac252
 
 Burn the zether tokens and get back equal amount in ERC20 tokens. This call burns the zether amount from the shielded account corresponding to the specified Ethereum account, and release equal amount of ERC20 tokens to the Ethereum account (which was being held by the Zether contract).
 
-```
+```console
 $ curl -H "Content-Type: application/json" -d '{"ethAddress":"0x173Fdf2C4845D61dB0CB93B789154475aff30729","amount":10}' http://localhost:3000/api/v1/withdraw
 {
   "result": {
