@@ -220,7 +220,7 @@ function postHandler(req, res, result) {
   // eslint-disable-line no-unused-vars
   res.status(201);
   res.header('Content-Type', 'application/json');
-  res.send(JSON.stringify({ result }, null, 2));
+  res.send(JSON.stringify({ ...result }, null, 2));
 }
 
 function getHandler(req, res, result) {
