@@ -147,7 +147,12 @@ This gives ethereum accounts some ERC20 tokens, which then can be deposited to t
 
 ```console
 $ curl -H "Content-Type: application/json" -d '{"ethAddress":"0x173Fdf2C4845D61dB0CB93B789154475aff30729","amount":1000}' http://localhost:3000/api/v1/mint
-{}
+{
+  "result": {
+    "success": true,
+    "transactionHash": "0x480eb9c7093f528c2fcd1c481e3dc90962c90fc5a2f2b28177ed1a21d72b3cf5"
+  }
+}
 ```
 
 ### Look up ERC20 balances
@@ -167,7 +172,12 @@ Call the following endpoint to deposit ERC20 tokens to Zether and get the corres
 
 ```
 $ curl -H "Content-Type: application/json" -d '{"ethAddress":"0x173Fdf2C4845D61dB0CB93B789154475aff30729","amount":100}' http://localhost:3000/api/v1/fund
-{}
+{
+  "result": {
+    "success": true,
+    "transactionHash": "0x480eb9c7093f528c2fcd1c481e3dc90962c90fc5a2f2b28177ed1a21d72b3cf5"
+  }
+}
 ```
 
 ### Lookup zether balances
@@ -187,7 +197,12 @@ Transfer zether between shielded accounts.
 
 ```console
 $ curl -H "Content-Type: application/json" -d '{"sender":"0x088e0c151ce3828ac25245a6fd56977f986ae3bb3724651b4bf7b49ed45f1269,0x083c23057e981fc55494300414be6ddb4b42f9c6a4c8e6f989cf9419c2cff3c8","receiver":"0x21c7312f9589a25e6ba90371046e95e511ae4ac71f1d75ebd32e0cb11454fee7,0x05607ed8af5a53bc9cf1955a377bb229e6d2a10e7a35e2a381021e641231d4b2","amount":10}' http://localhost:3000/api/v1/transfer
-{}
+{
+  "result": {
+    "success": true,
+    "transactionHash": "0x480eb9c7093f528c2fcd1c481e3dc90962c90fc5a2f2b28177ed1a21d72b3cf5"
+  }
+}
 ```
 
 ### Withdraw Zether
@@ -196,7 +211,12 @@ Burn the zether tokens and get back equal amount in ERC20 tokens. This call burn
 
 ```
 $ curl -H "Content-Type: application/json" -d '{"ethAddress":"0x173Fdf2C4845D61dB0CB93B789154475aff30729","amount":10}' http://localhost:3000/api/v1/withdraw
-{}
+{
+  "result": {
+    "success": true,
+    "transactionHash": "0x480eb9c7093f528c2fcd1c481e3dc90962c90fc5a2f2b28177ed1a21d72b3cf5"
+  }
+}
 ```
 
 # Run Unit Tests
