@@ -170,7 +170,7 @@ $ curl -H "Content-Type: application/json" http://localhost:3000/api/v1/accounts
 
 Call the following endpoint to deposit ERC20 tokens to Zether and get the corresponding shielded account funded with the equal amount of zether tokens.
 
-```
+```console
 $ curl -H "Content-Type: application/json" -d '{"ethAddress":"0x173Fdf2C4845D61dB0CB93B789154475aff30729","amount":100}' http://localhost:3000/api/v1/fund
 {
   "result": {
