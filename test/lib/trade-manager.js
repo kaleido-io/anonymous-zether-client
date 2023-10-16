@@ -19,7 +19,7 @@ const Prover = require('../../lib/keystore/shielded/prover.js');
 
 const sleep = require('util').promisify(require('timers').setTimeout);
 
-describe('trade-manager.js - end to end test', () => {
+describe('trade-manager - end to end test', () => {
   let TradeManager, wm, shielded, tmpdir, tradeManager, Utils, epochLength;
   let alice, bob;
 
@@ -30,7 +30,7 @@ describe('trade-manager.js - end to end test', () => {
 
     const { HDWallet } = require('../../lib/keystore/hdwallet');
     const ShieldedAccount = require('../../lib/keystore/shielded');
-    const WalletManager = require('../../lib/wallet-manager.js');
+    const WalletManager = require('../../lib/wallet-manager');
     Utils = require('../../lib/utils.js');
     const testWallet = new HDWallet('test-hdwallet');
     await testWallet.init();
@@ -39,7 +39,7 @@ describe('trade-manager.js - end to end test', () => {
     wm.addWallet('test-hdwallet', testWallet);
     shielded = new ShieldedAccount();
 
-    TradeManager = require('../../lib/trade-manager.js');
+    TradeManager = require('../../lib/trade-manager');
   });
 
   beforeEach(async () => {
@@ -154,7 +154,7 @@ describe('decrypt balances', () => {
       process.env.ERC20_ADDRESS = '0x9101179e67001879277c11d420C7317dc5415bdA';
       process.env.ZSC_ADDRESS = '0x849Cf796E88E19F3f7603c82536eE73DF6140E89';
     });
-    TradeManager = require('../../lib/trade-manager.js');
+    TradeManager = require('../../lib/trade-manager');
     tradeManager = new TradeManager();
     await tradeManager.init();
     await tradeManager.initBalanceCache();
@@ -180,7 +180,7 @@ describe('decrypt balances', () => {
 describe('error handling', () => {
   let TradeManager;
 
-  describe('trade-manager.js constructor() handling missing configurations', () => {
+  describe('trade-manager constructor() handling missing configurations', () => {
     it('throws if no ethUrl was provided', () => {
       reset(() => {});
       TradeManager = require('../../lib/trade-manager');
@@ -205,7 +205,7 @@ describe('error handling', () => {
     });
   });
 
-  describe('trade-manager.js methods error handling', () => {
+  describe('trade-manager methods error handling', () => {
     let tmpdir, TradeManager, tm;
 
     before(() => {
@@ -216,7 +216,7 @@ describe('error handling', () => {
         process.env.ERC20_ADDRESS = '0x9101179e67001879277c11d420C7317dc5415bdA';
         process.env.ZSC_ADDRESS = '0x849Cf796E88E19F3f7603c82536eE73DF6140E89';
       });
-      TradeManager = require('../../lib/trade-manager.js');
+      TradeManager = require('../../lib/trade-manager');
       sinon.stub(TradeManager.timers, 'sleep').resolves();
     });
 

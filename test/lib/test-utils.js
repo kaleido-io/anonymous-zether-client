@@ -18,7 +18,7 @@ function reset(setup) {
   delete require.cache[require.resolve('../../lib/keystore/admin')];
   delete require.cache[require.resolve('../../lib/keystore/hdwallet')];
   delete require.cache[require.resolve('../../lib/keystore/shielded')];
-  delete require.cache[require.resolve('../../lib/trade-manager.js')];
+  delete require.cache[require.resolve('../../lib/trade-manager')];
   delete require.cache[require.resolve('../../lib/wallet-manager.js')];
   delete require.cache[require.resolve('../../lib/utils.js')];
   delete require.cache[require.resolve('../../lib/config.js')];
