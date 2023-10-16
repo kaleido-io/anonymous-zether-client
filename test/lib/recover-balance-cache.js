@@ -7,14 +7,14 @@ chai.use(require('chai-as-promised'));
 const expect = chai.expect;
 const fs = require('fs');
 const timers = {
-  sleep: require('util').promisify(require('timers').setTimeout)
+  sleep: require('util').promisify(require('timers').setTimeout),
 };
 const bn128 = require('@anonymous-zether/anonymous.js/src/utils/bn128.js');
 
 describe('recover-balance-test.js', () => {
   let RecoverBalanceCache, recoverBalanceCache, nodeCache;
   before(async () => {
-    RecoverBalanceCache = require('../../lib/recover-balance-cache.js');
+    RecoverBalanceCache = require('../../lib/trade-manager/balance-cache');
     nodeCache = new NodeCache({ stdTTL: 3, checkperiod: 1, useClones: false, maxKeys: 15, deleteOnExpire: true });
     recoverBalanceCache = new RecoverBalanceCache(10);
     recoverBalanceCache.init(nodeCache);

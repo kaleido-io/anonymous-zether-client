@@ -6,7 +6,6 @@ const Web3 = require('web3');
 const nock = require('nock');
 
 const utils = require('../../lib/utils');
-const bn128Utils = require('@anonymous-zether/anonymous.js/src/utils/utils');
 
 describe('Signing tests', () => {
   let web3;
@@ -71,18 +70,5 @@ describe('Signing tests', () => {
     })
       .to.throw(Error)
       .that.match(/Parameter "payload.nonce" is detected as a string but not a valid "0x" prefixed hexidecimal number/);
-  });
-
-  it('shuffles accounts', async () => {
-    const accounts = [];
-    for (let i = 0; i < 8; i++) {
-      const newAccount = bn128Utils.createAccount();
-      accounts.push(newAccount.y);
-    }
-    const sender = accounts[0];
-    const receiver = accounts[1];
-    const { y, index } = utils.shuffleAccountsWParityCheck(accounts, sender, receiver);
-    expect(y[index[0]]).deep.equal(sender);
-    expect(y[index[1]]).deep.equal(receiver);
   });
 });
