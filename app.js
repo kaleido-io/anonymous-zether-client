@@ -116,31 +116,11 @@ apiRouter.get(
 
 apiRouter.post(
   '/accounts',
-  expressify(async (req) => {
-    const { name } = req.body;
-    if (!name) {
-      throw new HttpError('Must provide "name" for the participant name', 400);
-    }
-
+  expressify(async () => {
     const ethAccount = await walletManager.newAccount('users');
     const shieldedAccount = await shieldedWallet.createAccount(ethAccount.address);
-    await tradeManager.zetherTokenClient.registerAccount(ethAccount.address, name);
+    await tradeManager.zetherTokenClient.registerAccount(ethAccount.address);
     return { eth: ethAccount.address, shielded: shieldedAccount };
-  }, postHandler)
-);
-
-apiRouter.post(
-  '/authorize',
-  expressify(async (req) => {
-    const { ethAddress } = req.body;
-    if (!ethAddress) {
-      throw new HttpError('Must provide "ethAddress" for the address to authorize to transaction with the cash token contract', 400);
-    }
-    const txHash = await tradeManager.cashTokenClient.enableAccount(ethAddress);
-    return {
-      success: true,
-      transactionHash: txHash,
-    };
   }, postHandler)
 );
 

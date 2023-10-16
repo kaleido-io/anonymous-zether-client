@@ -5,6 +5,7 @@ chai.use(require('chai-as-promised'));
 const expect = chai.expect;
 const request = require('supertest');
 const fs = require('fs-extra');
+const sleep = require('util').promisify(require('timers').setTimeout);
 
 const { fullSetup } = require('./lib/test-utils.js');
 
@@ -12,7 +13,6 @@ describe('app.js', () => {
   let server, tmpdir, epochLength, app, tm;
   let user1EthAddress, user1ShieldedAddress;
   let user2EthAddress, user2ShieldedAddress;
-  let zscAddress;
 
   before(async function () {
     this.timeout(10 * 1000);
@@ -25,13 +25,13 @@ describe('app.js', () => {
     server = await serverPromise;
     app = expressApp;
     tm = tradeManager;
-    zscAddress = process.env.ZSC_ADDRESS;
   });
 
   after(async () => {
-    tm.web3.currentProvider.disconnect();
-    await server.close();
     fs.removeSync(tmpdir);
+    await server.close();
+    tm.cashTokenClient.web3.currentProvider.disconnect();
+    tm.zetherTokenClient.web3.currentProvider.disconnect();
   });
 
   it('GET /accounts: should return 200 and empty accounts', async () => {
@@ -42,7 +42,7 @@ describe('app.js', () => {
     await request(app)
       .post('/api/v1/accounts')
       .set('Content-type', 'application/json')
-      .send({ name: 'user1' })
+      .send({})
       .expect('Content-Type', /json/)
       .expect(201)
       .expect((res) => {
@@ -57,7 +57,7 @@ describe('app.js', () => {
     await request(app)
       .post('/api/v1/accounts')
       .set('Content-type', 'application/json')
-      .send({ name: 'user2' })
+      .send({})
       .expect('Content-Type', /json/)
       .expect(201)
       .expect((res) => {
@@ -65,45 +65,6 @@ describe('app.js', () => {
         expect(res.body).to.be.an('object').that.has.property('shielded');
         user2EthAddress = res.body.eth;
         user2ShieldedAddress = res.body.shielded;
-      });
-  });
-
-  it('POST /authorize for ZSC: should return 200', async () => {
-    await request(app)
-      .post('/api/v1/authorize')
-      .set('Content-type', 'application/json')
-      .send({ ethAddress: zscAddress })
-      .expect('Content-Type', /json/)
-      .expect(201)
-      .expect((res) => {
-        expect(res.body).to.be.an('object').that.has.property('success');
-        expect(res.body).to.be.an('object').that.has.property('transactionHash');
-      });
-  });
-
-  it('POST /authorize for sender: should return 200', async () => {
-    await request(app)
-      .post('/api/v1/authorize')
-      .set('Content-type', 'application/json')
-      .send({ ethAddress: user1EthAddress })
-      .expect('Content-Type', /json/)
-      .expect(201)
-      .expect((res) => {
-        expect(res.body).to.be.an('object').that.has.property('success');
-        expect(res.body).to.be.an('object').that.has.property('transactionHash');
-      });
-  });
-
-  it('POST /authorize for receiver: should return 200', async () => {
-    await request(app)
-      .post('/api/v1/authorize')
-      .set('Content-type', 'application/json')
-      .send({ ethAddress: user2EthAddress })
-      .expect('Content-Type', /json/)
-      .expect(201)
-      .expect((res) => {
-        expect(res.body).to.be.an('object').that.has.property('success');
-        expect(res.body).to.be.an('object').that.has.property('transactionHash');
       });
   });
 
@@ -135,6 +96,7 @@ describe('app.js', () => {
 
   it('POST /transfer: should return 200', async function () {
     this.timeout(3 * epochLength * 1000);
+    await sleep(epochLength * 1000);
     const sender = user1ShieldedAddress.join(',');
     const receiver = user2ShieldedAddress.join(',');
     await request(app)
