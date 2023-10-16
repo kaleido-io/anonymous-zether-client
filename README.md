@@ -27,34 +27,63 @@ Follow the steps below to have a working system.
 
 The client works with any Ethereum JSON-RPC endpoint, such as a local node for testing purposes, or a permissioned network hosted in Kaleido.
 
-You can get a local Ethereum node running easily by using Hardhat. Go to the project `anonymous-zether` checked out above, and launch the local node using Hardhat:
+You can get a local Ethereum node running easily by using [ganache-cli](https://www.npmjs.com/package/ganache-cli):
 
 ```console
-$ cd anonymous-zether/packages/protocol
-$ npm i
-$ npm run node
-Started HTTP and WebSocket JSON-RPC server at http://127.0.0.1:8545/
+$ $ ganache-cli --gasPrice 0 -k berlin --miner.blockGasLimit 0x11e1a300
+ganache v7.9.1 (@ganache/cli: 0.10.1, @ganache/core: 0.10.1)
+Starting RPC server
 
-Accounts
-========
+Available Accounts
+==================
+(0) 0x5b791207A5f3c8B352369e951cc0066BaF36de8a (1000 ETH)
+(1) 0x01fd46157b7971256b71C91C5D3a40e21eB62F80 (1000 ETH)
+(2) 0xd0194b5c07eb27261ACf944Ff0792541455A5d8D (1000 ETH)
+(3) 0xe564487ACF120AAdCfF9159730dC6b790B83e0f2 (1000 ETH)
+(4) 0xD7E14AE5b7e9700C3790bDbfB0a8C2a2e2ae8Dd3 (1000 ETH)
+(5) 0x699b09787d9Ce140836818915cE9eBdF2842Ab9e (1000 ETH)
+(6) 0x6c6e930900390CE8EAfa9807f6B071CE57807391 (1000 ETH)
+(7) 0x139E0Bc2FF35B88243BD7B276504325EC9D84a1F (1000 ETH)
+(8) 0xf96c701EbeE623f8545696dB04e5c560AE65E0d9 (1000 ETH)
+(9) 0x9F08B9312809daD5208BD901B08AF1Ab31E77312 (1000 ETH)
 
-WARNING: These accounts, and their private keys, are publicly known.
-Any funds sent to them on Mainnet or any other live network WILL BE LOST.
+Private Keys
+==================
+(0) 0x00c3523ef09bd5bdf0c3fca0ef7a4ff71532eab77d7e72f361e15f57b4a747d8
+(1) 0xa7c8d1b234ba609b62c7acf84cd82de3e73f0617f6c8b9b20b21d1f8bf110c9b
+(2) 0x5593607ca716aec6921cc62c4a6e9fdacc00a8e38ef6a38f5920c27f31c28ebd
+(3) 0xfd29631d4ca1da78ea78315c11f447df7492e723a0fc094af93469ae55b5739e
+(4) 0x65dc3c01c18b0c8d283edf33715113efdfb05bc4a068d02a04d6cdb438418861
+(5) 0x895ca7c95f90868b573a54401ea5c7f7387d5576dc015f3ea240619a74696b0c
+(6) 0xc28336779da8fdd0633fa174b675f61469af962ff50ba131fbfb0908147c98f3
+(7) 0x924205bc7444b6fc8181a543d8de9706c5dedd5096f1febefd9b84e433a42121
+(8) 0x10bed0be9fab3bcc3e7127506544e3e119687eacf94e932ec700119a3b55a737
+(9) 0x765e90bd50749713bc5dd658c694bbb1e5e018ca5847b1f9e73624fa53e3640c
 
-Account #0: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 (10000 ETH)
-Private Key: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+HD Wallet
+==================
+Mnemonic:      comic problem burden scissors bacon blood similar bomb gate pelican enough alert
+Base HD Path:  m/44'/60'/0'/0/{account_index}
 
-Account #1: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 (10000 ETH)
-Private Key: 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+Default Gas Price
+==================
+0
 
-...
+BlockGas Limit
+==================
+300000000
 
-Account #19: 0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199 (10000 ETH)
-Private Key: 0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e
+Call Gas Limit
+==================
+50000000
 
-WARNING: These accounts, and their private keys, are publicly known.
-Any funds sent to them on Mainnet or any other live network WILL BE LOST.
+Chain
+==================
+Hardfork: berlin
+Id:       1337
 ```
+
+> Hardhat node would have been a great choice for a local test blockchain as well, except for the fact that hardhat block timestamps are always out of sync with the computer's clock, making it impossible to coordinate the epoch calculation for Zether proof generation. Until that's fixed, Hardhat is not viable for testing Anonymous Zether.
 
 ## Deploy Contracts
 
