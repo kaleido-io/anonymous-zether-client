@@ -84,12 +84,20 @@ describe('trade-manager - end to end test', () => {
     };
   });
 
-  it('register Alice', async () => {
-    await tradeManager.zetherTokenClient.registerAccount(alice.ethAccount.address);
+  it('enable Alice on Real Digital', async () => {
+    await tradeManager.cashTokenClient.enableAccount(alice.ethAccount.address);
   });
 
-  it('register Bob', async () => {
-    await tradeManager.zetherTokenClient.registerAccount(bob.ethAccount.address);
+  it('enable Bob on Real Digital', async () => {
+    await tradeManager.cashTokenClient.enableAccount(bob.ethAccount.address);
+  });
+
+  it('register Alice on ZSC', async () => {
+    await tradeManager.zetherTokenClient.registerAccount(alice.ethAccount.address, 'alice');
+  });
+
+  it('register Bob on ZSC', async () => {
+    await tradeManager.zetherTokenClient.registerAccount(bob.ethAccount.address, 'bob');
   });
 
   it('mint some tokens to Alice', async () => {
