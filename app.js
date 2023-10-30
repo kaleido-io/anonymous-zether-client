@@ -21,8 +21,8 @@ const jsonBodyParser = require('body-parser').json();
 const cors = require('cors');
 const app = express();
 const apiRouter = new express.Router();
-const randomstring = require('randomstring');
 
+const { contentType, requestLogger, expressify } = require('./middleware');
 const { HDWallet } = require('./lib/keystore/hdwallet');
 const ShieldedWallet = require('./lib/keystore/shielded');
 const TradeManager = require('./lib/trade-manager');
@@ -43,204 +43,237 @@ const logger = getLogger();
 
 const PORT = 3000;
 
-function contentType(req, res, next) {
-  if ((req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') && !req.is('application/json') && !(req.headers && req.headers['kaleido-custom-content-type'] === 'true')) {
-    res.status(400);
-    res.send({ message: 'Invalid content type' });
-  } else {
-    next();
-  }
-}
-
-function requestLogger(req, res, next) {
-  // Intercept end to do logging
-  const _end = res.end.bind(res);
-  const requestId = newRequestId();
-  const start = Date.now();
-  logger.info(`--> ${requestId} ${req.method} ${req.path}`);
-  res.end = (data, encoding) => {
-    logger.info(`<-- ${requestId} ${req.method} ${req.path} [${res.statusCode}] (time=${Date.now() - start}ms)`);
-    _end(data, encoding);
-  };
-  next();
-}
-
-function newRequestId() {
-  return randomstring.generate({
-    length: 10,
-    charset: 'alphanumeric',
-    capitalization: 'lowercase',
-  });
-}
-
-function errorHandler(err, req, res) {
-  // eslint-disable-line
-
-  // This is always logged - even when KALEIDO_SERVICE_CONTAINER is true
-  logger.error(`${req.method} ${req.url} - request failed`, err);
-
-  if (err instanceof HttpError) {
-    err.send(res, req.headers['x-request-id']);
-  } else {
-    res.status(500);
-    res.send({
-      requestId: req.headers['x-request-id'],
-      errorMessage: 'Internal error',
-    });
-  }
-}
-
-function expressify(promiseFunc, responderFunc) {
-  return (req, res, next) => {
-    logger.info(req.path, req.method);
-    promiseFunc(req, res)
-      .then((responseBody) => {
-        responderFunc(req, res, responseBody);
-      })
-      .catch((err) => {
-        next(err);
-      });
-  };
-}
-
 // the /api/v1 endpoints will be protected by basic auth with app credentials
 // enforced at the nginx
 app.use('/api/v1', contentType, cors(), jsonBodyParser, requestLogger, apiRouter);
 
-apiRouter.get(
-  '/accounts',
-  expressify(async () => {
-    return await shieldedWallet.getAccounts();
-  }, getHandler)
-);
+apiRouter.get('/accounts', expressify(getAccounts, getHandler));
+apiRouter.post('/accounts', expressify(newAccount, postHandler));
+apiRouter.get('/accounts/:account', expressify(accountStatus, getHandler));
+apiRouter.post('/accounts/:account/authorize', expressify(authorizeAccount, postHandler));
+apiRouter.post('/accounts/:account/revoke', expressify(revokeAccount, postHandler));
+apiRouter.get('/accounts/:account/balance', expressify(getBalance, getHandler));
+apiRouter.get('/accounts', expressify(getAccounts, getHandler));
+apiRouter.post('/mint', expressify(mint, postHandler));
+apiRouter.post('/burn', expressify(burn, postHandler));
+apiRouter.post('/move', expressify(move, postHandler));
+apiRouter.post('/moveAndBurn', expressify(moveAndBurn, postHandler));
+apiRouter.post('/increaseFrozenBalance', expressify(increaseFrozenBalance, postHandler));
+apiRouter.post('/decreaseFrozenBalance', expressify(decreaseFrozenBalance, postHandler));
+apiRouter.post('/fund', expressify(fund, postHandler));
+apiRouter.post('/transfer', expressify(transfer, postHandler));
+apiRouter.post('/withdraw', expressify(withdraw, postHandler));
 
-apiRouter.post(
-  '/accounts',
-  expressify(async (req) => {
-    const { name } = req.body;
-    if (!name) {
-      throw new HttpError('Must provide "name" for the account to create and register', 400);
-    }
-    const ethAccount = await walletManager.newAccount('users');
-    await tradeManager.cashTokenClient.enableAccount(ethAccount.address);
-    const shieldedAccount = await shieldedWallet.createAccount(ethAccount.address);
-    await tradeManager.zetherTokenClient.registerAccount(ethAccount.address, name);
-    return { eth: ethAccount.address, shielded: shieldedAccount };
-  }, postHandler)
-);
+async function getAccounts() {
+  const local = await shieldedWallet.getAccounts();
+  const shieldedAccounts = await tradeManager.zetherTokenClient.getRegisteredAccounts();
+  return { local, onchain: { shieldedAccounts } };
+}
 
-apiRouter.post(
-  '/authorize',
-  expressify(async (req) => {
-    const { ethAddress } = req.body;
-    if (!ethAddress) {
-      throw new HttpError('Must provide "ethAddress" for the address to authorize', 400);
-    }
-    const txHash = await tradeManager.cashTokenClient.enableAccount(ethAddress);
-    return {
-      success: true,
-      transactionHash: txHash,
-    };
-  }, postHandler)
-);
+async function newAccount(req) {
+  const { name } = req.body;
+  if (!name) {
+    throw new HttpError('Must provide "name" for the account to create and register', 400);
+  }
+  const ethAccount = await walletManager.newAccount('users');
+  await tradeManager.cashTokenClient.enableAccount(ethAccount.address);
+  const shieldedAccount = await shieldedWallet.createAccount(ethAccount.address);
+  await tradeManager.zetherTokenClient.registerAccount(ethAccount.address, name);
+  return { eth: ethAccount.address, shielded: shieldedAccount };
+}
 
-apiRouter.post(
-  '/mint',
-  expressify(async (req) => {
-    const { ethAddress, amount } = req.body;
-    if (!ethAddress) {
-      throw new HttpError('Must provide "ethAddress" for the signing address to draw fund from', 400);
-    }
-    if (!amount) {
-      throw new HttpError('Must provide "amount" for the funding amount', 400);
-    }
-    const txHash = await tradeManager.cashTokenClient.mint(ethAddress, amount);
-    return {
-      success: true,
-      transactionHash: txHash,
-    };
-  }, postHandler)
-);
+async function authorizeAccount(req) {
+  const ethAddress = req.params.account;
+  const txHash = await tradeManager.cashTokenClient.enableAccount(ethAddress);
+  return {
+    success: true,
+    transactionHash: txHash,
+  };
+}
 
-apiRouter.post(
-  '/fund',
-  expressify(async (req) => {
-    const { ethAddress, amount } = req.body;
-    if (!ethAddress) {
-      throw new HttpError('Must provide "ethAddress" for the signing address to draw fund from', 400);
-    }
-    if (!amount) {
-      throw new HttpError('Must provide "amount" for the funding amount', 400);
-    }
-    const txHash = await tradeManager.zetherTokenClient.fundAccount(ethAddress, amount);
-    return {
-      success: true,
-      transactionHash: txHash,
-    };
-  }, postHandler)
-);
+async function accountStatus(req) {
+  const address = req.params.account;
+  const status = {};
+  if (isEthereumAddress(address)) {
+    // query for the ERC20 authorized status
+    status.isEthereumAddress = true;
+    status.isAuthorized = await tradeManager.cashTokenClient.isAuthorized(address);
+  } else {
+    throw new HttpError('Unknown address format', 400);
+  }
+  return status;
+}
 
-apiRouter.post(
-  '/transfer',
-  expressify(async (req) => {
-    const { sender, receiver, amount } = req.body;
-    if (!isShieldedAddress(sender)) {
-      throw new HttpError('Must provide "sender" in shielded address format for the sender address', 400);
-    }
-    if (!isShieldedAddress(receiver)) {
-      throw new HttpError('Must provide "receiver" in shielded address format for the receiver address', 400);
-    }
-    const shieldedSenderAddress = sender.split(',');
-    const shieldedReceiverAddress = receiver.split(',');
-    if (!amount) {
-      throw new HttpError('Must provide "amount" for the transfer amount', 400);
-    }
-    const txHash = await tradeManager.zetherTokenClient.transfer(shieldedSenderAddress, shieldedReceiverAddress, amount);
-    return {
-      success: true,
-      transactionHash: txHash,
-    };
-  }, postHandler)
-);
+async function revokeAccount(req) {
+  const ethAddress = req.params.account;
+  const txHash = await tradeManager.cashTokenClient.disableAccount(ethAddress);
+  return {
+    success: true,
+    transactionHash: txHash,
+  };
+}
 
-apiRouter.post(
-  '/withdraw',
-  expressify(async (req) => {
-    const { ethAddress, amount } = req.body;
-    if (!isEthereumAddress(ethAddress)) {
-      throw new HttpError('Must provide the "ethAddress" for the ethereum address to withdraw funds to', 400);
-    }
-    if (!amount) {
-      throw new HttpError('Must provide "amount" for the withdraw amount', 400);
-    }
-    const txHash = await tradeManager.zetherTokenClient.withdraw(ethAddress, amount);
-    return {
-      success: true,
-      transactionHash: txHash,
-    };
-  }, postHandler)
-);
+async function getBalance(req) {
+  const address = req.params.account;
+  let balance;
+  if (isEthereumAddress(address)) {
+    // query for the ERC20 balance
+    balance = await tradeManager.cashTokenClient.getBalance(address);
+  } else if (isShieldedAddress(address)) {
+    // query for the Zether balance
+    const shieldedAddress = address.split(',');
+    balance = await tradeManager.zetherTokenClient.getBalance(shieldedAddress);
+  } else {
+    throw new HttpError('Unknown address format', 400);
+  }
+  return { balance };
+}
 
-apiRouter.get(
-  '/accounts/:address/balance',
-  expressify(async (req) => {
-    const address = req.params.address;
-    let balance;
-    if (isEthereumAddress(address)) {
-      // query for the ERC20 balance
-      balance = await tradeManager.cashTokenClient.getERC20Balance(address);
-    } else if (isShieldedAddress(address)) {
-      // query for the Zether balance
-      const shieldedAddress = address.split(',');
-      balance = await tradeManager.zetherTokenClient.getBalance(shieldedAddress);
-    } else {
-      throw new HttpError('Unknown address format', 400);
-    }
-    return { balance };
-  }, getHandler)
-);
+async function mint(req) {
+  const { ethAddress, amount } = req.body;
+  if (!ethAddress) {
+    throw new HttpError('Must provide "ethAddress" for the account to mint tokens to', 400);
+  }
+  if (!amount) {
+    throw new HttpError('Must provide "amount" for the minting amount', 400);
+  }
+  const txHash = await tradeManager.cashTokenClient.mint(ethAddress, amount);
+  return {
+    success: true,
+    transactionHash: txHash,
+  };
+}
 
-apiRouter.use(errorHandler);
+async function burn(req) {
+  const { ethAddress, amount } = req.body;
+  if (!amount) {
+    throw new HttpError('Must provide "amount" for the burning amount', 400);
+  }
+  let txHash;
+  if (ethAddress) {
+    txHash = await tradeManager.cashTokenClient.burnFrom(ethAddress, amount);
+  } else {
+    txHash = await tradeManager.cashTokenClient.burn(amount);
+  }
+
+  return {
+    success: true,
+    transactionHash: txHash,
+  };
+}
+
+async function move(req) {
+  const { senderEthAddress, receiverEthAddress, amount } = req.body;
+  if (!senderEthAddress) {
+    throw new HttpError('Must provide "senderEthAddress" for the signing address to transfer fund from', 400);
+  }
+  if (!receiverEthAddress) {
+    throw new HttpError('Must provide "receiverEthAddress" for the signing address to send fund to', 400);
+  }
+  if (!amount) {
+    throw new HttpError('Must provide "amount" for the transfer amount', 400);
+  }
+  const txHash = await tradeManager.cashTokenClient.move(senderEthAddress, receiverEthAddress, amount);
+  return {
+    success: true,
+    transactionHash: txHash,
+  };
+}
+
+async function moveAndBurn(req) {
+  const { ethAddress, amount } = req.body;
+  if (!ethAddress) {
+    throw new HttpError('Must provide "ethAddress" for the account to burn tokens from', 400);
+  }
+  if (!amount) {
+    throw new HttpError('Must provide "amount" for the bruning amount', 400);
+  }
+  const txHash = await tradeManager.cashTokenClient.moveAndBurn(ethAddress, amount);
+  return {
+    success: true,
+    transactionHash: txHash,
+  };
+}
+
+async function increaseFrozenBalance(req) {
+  const { ethAddress, amount } = req.body;
+  if (!ethAddress) {
+    throw new HttpError('Must provide "ethAddress" for the account to increase the frozen balance of', 400);
+  }
+  if (!amount) {
+    throw new HttpError('Must provide "amount" for the increasing amount', 400);
+  }
+  const txHash = await tradeManager.cashTokenClient.increaseFrozenBalance(ethAddress, amount);
+  return {
+    success: true,
+    transactionHash: txHash,
+  };
+}
+
+async function decreaseFrozenBalance(req) {
+  const { ethAddress, amount } = req.body;
+  if (!ethAddress) {
+    throw new HttpError('Must provide "ethAddress" for the account to decrease the frozen balance of', 400);
+  }
+  if (!amount) {
+    throw new HttpError('Must provide "amount" for the increasing amount', 400);
+  }
+  const txHash = await tradeManager.cashTokenClient.decreaseFrozenBalance(ethAddress, amount);
+  return {
+    success: true,
+    transactionHash: txHash,
+  };
+}
+
+async function fund(req) {
+  const { ethAddress, amount } = req.body;
+  if (!ethAddress) {
+    throw new HttpError('Must provide "ethAddress" for the signing address to draw fund from', 400);
+  }
+  if (!amount) {
+    throw new HttpError('Must provide "amount" for the funding amount', 400);
+  }
+  const txHash = await tradeManager.zetherTokenClient.fundAccount(ethAddress, amount);
+  return {
+    success: true,
+    transactionHash: txHash,
+  };
+}
+
+async function transfer(req) {
+  const { sender, receiver, amount } = req.body;
+  if (!isShieldedAddress(sender)) {
+    throw new HttpError('Must provide "sender" in shielded address format for the sender address', 400);
+  }
+  if (!isShieldedAddress(receiver)) {
+    throw new HttpError('Must provide "receiver" in shielded address format for the receiver address', 400);
+  }
+  const shieldedSenderAddress = sender.split(',');
+  const shieldedReceiverAddress = receiver.split(',');
+  if (!amount) {
+    throw new HttpError('Must provide "amount" for the transfer amount', 400);
+  }
+  const txHash = await tradeManager.zetherTokenClient.transfer(shieldedSenderAddress, shieldedReceiverAddress, amount);
+  return {
+    success: true,
+    transactionHash: txHash,
+  };
+}
+
+async function withdraw(req) {
+  const { ethAddress, amount } = req.body;
+  if (!isEthereumAddress(ethAddress)) {
+    throw new HttpError('Must provide the "ethAddress" for the ethereum address to withdraw funds to', 400);
+  }
+  if (!amount) {
+    throw new HttpError('Must provide "amount" for the withdraw amount', 400);
+  }
+  const txHash = await tradeManager.zetherTokenClient.withdraw(ethAddress, amount);
+  return {
+    success: true,
+    transactionHash: txHash,
+  };
+}
 
 function postHandler(req, res, result) {
   // eslint-disable-line no-unused-vars

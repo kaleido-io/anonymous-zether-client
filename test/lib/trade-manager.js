@@ -105,7 +105,7 @@ describe('trade-manager - end to end test', () => {
   });
 
   it('get balance of Alice in ERC20', async () => {
-    const balance = await tradeManager.cashTokenClient.getERC20Balance(alice.ethAccount.address);
+    const balance = await tradeManager.cashTokenClient.getBalance(alice.ethAccount.address);
     expect(balance).to.equal('10000');
   });
 
@@ -115,7 +115,7 @@ describe('trade-manager - end to end test', () => {
   });
 
   it('get balance of Alice in ERC20', async () => {
-    const balance = await tradeManager.cashTokenClient.getERC20Balance(alice.ethAccount.address);
+    const balance = await tradeManager.cashTokenClient.getBalance(alice.ethAccount.address);
     expect(balance).to.equal('9900');
   });
 

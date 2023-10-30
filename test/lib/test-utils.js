@@ -43,6 +43,7 @@ function fullSetup(name) {
     process.env.ZSC_EPOCH_LENGTH = 6;
     process.env.CHAIN_ID = 1337;
     process.env.ADMIN_SIGNER = '0x950e0c1d6d719c65104bdeed2bd1ff97781cf90f1334abfe80e140ded4c40d21';
+    process.env.AUTHORITY_SIGNER = '0x950e0c1d6d719c65104bdeed2bd1ff97781cf90f1334abfe80e140ded4c40d21';
     process.env.ETH_URL = 'ws://127.0.0.1:8545';
     process.env.DATA_DIR = tmpdir;
   });

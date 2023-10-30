@@ -19,6 +19,7 @@ describe('app.js', () => {
 
     // start the server
     tmpdir = fullSetup('zether-client-test');
+    fs.removeSync(tmpdir);
     epochLength = parseInt(process.env.ZSC_EPOCH_LENGTH);
     zscAddress = process.env.ZSC_ADDRESS;
 
@@ -36,7 +37,14 @@ describe('app.js', () => {
   });
 
   it('GET /accounts: should return 200 and empty accounts', async () => {
-    await request(app).get('/api/v1/accounts').expect('Content-Type', /json/).expect(200).expect([]);
+    await request(app)
+      .get('/api/v1/accounts')
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .expect((result) => {
+        expect(result.body.local).deep.equals([]);
+        expect(result.body.onchain).to.be.an('object');
+      });
   });
 
   it('POST /accounts: should return 200 and new account user1', async () => {
@@ -69,9 +77,9 @@ describe('app.js', () => {
       });
   });
 
-  it('POST /authorize: should return 200 for authorizing ZSC', async () => {
+  it('POST /accounts/:accounts/authorize: should return 200 for authorizing ZSC', async () => {
     await request(app)
-      .post('/api/v1/authorize')
+      .post(`/api/v1/accounts/${zscAddress}/authorize`)
       .set('Content-type', 'application/json')
       .send({ ethAddress: zscAddress })
       .expect('Content-Type', /json/)
@@ -82,9 +90,9 @@ describe('app.js', () => {
       });
   });
 
-  it('POST /authorize: should return 200 for authorizing user1', async () => {
+  it('POST /accounts/:accounts/authorize: should return 200 for authorizing user1', async () => {
     await request(app)
-      .post('/api/v1/authorize')
+      .post(`/api/v1/accounts/${user1EthAddress}/authorize`)
       .set('Content-type', 'application/json')
       .send({ ethAddress: user1EthAddress })
       .expect('Content-Type', /json/)
@@ -95,9 +103,9 @@ describe('app.js', () => {
       });
   });
 
-  it('POST /authorize: should return 200 for authorizing user2', async () => {
+  it('POST /accounts/:accounts/authorize: should return 200 for authorizing user2', async () => {
     await request(app)
-      .post('/api/v1/authorize')
+      .post(`/api/v1/accounts/${user2EthAddress}/authorize`)
       .set('Content-type', 'application/json')
       .send({ ethAddress: user2EthAddress })
       .expect('Content-Type', /json/)
