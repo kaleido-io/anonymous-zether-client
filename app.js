@@ -28,6 +28,7 @@ const ShieldedWallet = require('./lib/keystore/shielded');
 const TradeManager = require('./lib/trade-manager');
 const WalletManager = require('./lib/wallet-manager');
 const { HttpError, getLogger, isEthereumAddress, isShieldedAddress } = require('./lib/utils');
+const { ONETIME_KEYS } = require('./lib/constants');
 const Config = require('./lib/config');
 const DvPClient = require('./lib/dvp');
 
@@ -57,6 +58,7 @@ apiRouter.post('/accounts/:account/authorize', expressify(authorizeAccount, post
 apiRouter.post('/accounts/:account/revoke', expressify(revokeAccount, postHandler));
 apiRouter.get('/accounts/:account/balance', expressify(getBalance, getHandler));
 apiRouter.get('/accounts', expressify(getAccounts, getHandler));
+apiRouter.post('/onetimeSigner', expressify(nextOnetimeSigner, postHandler));
 apiRouter.post('/mint', expressify(mint, postHandler));
 apiRouter.post('/burn', expressify(burn, postHandler));
 apiRouter.post('/move', expressify(move, postHandler));
@@ -116,6 +118,11 @@ async function revokeAccount(req) {
     success: true,
     transactionHash: txHash,
   };
+}
+
+async function nextOnetimeSigner() {
+  const oneTimeAccount = await tradeManager.walletManager.newAccount(ONETIME_KEYS);
+  return { address: oneTimeAccount.address };
 }
 
 async function getBalance(req) {
@@ -281,7 +288,7 @@ async function withdraw(req) {
 }
 
 async function startDvP(req) {
-  const { sender, receiver, amount } = req.body;
+  const { sender, receiver, amount, signer } = req.body;
   if (!isShieldedAddress(sender)) {
     throw new HttpError('Must provide "sender" in shielded address format for the sender address', 400);
   }
@@ -293,7 +300,7 @@ async function startDvP(req) {
   if (!amount) {
     throw new HttpError('Must provide "amount" for the trade amount', 400);
   }
-  const { txHash, txSubmitter, proof } = await dvpManager.startDvP(shieldedSenderAddress, shieldedReceiverAddress, amount);
+  const { txHash, txSubmitter, proof } = await dvpManager.startDvP(shieldedSenderAddress, shieldedReceiverAddress, amount, signer);
   return {
     success: true,
     transactionHash: txHash,
