@@ -29,6 +29,7 @@ const TradeManager = require('./lib/trade-manager');
 const WalletManager = require('./lib/wallet-manager');
 const { HttpError, getLogger, isEthereumAddress, isShieldedAddress } = require('./lib/utils');
 const Config = require('./lib/config');
+const DvPClient = require('./lib/dvp');
 
 // the users wallet dispenses new Ethereum signing accounts to assign to app users
 const usersWallet = new HDWallet('users');
@@ -38,10 +39,12 @@ const shieldedWallet = new ShieldedWallet();
 const walletManager = new WalletManager();
 // the trade manager manages interactions with the cash token and anonymous zether token contracts
 const tradeManager = new TradeManager(walletManager, shieldedWallet);
+// the dvp manager manages the swaps between zether token contracts
+const dvpManager = new DvPClient(tradeManager);
 
 const logger = getLogger();
 
-const PORT = 3000;
+const PORT = parseInt(process.env.PORT || 3000);
 
 // the /api/v1 endpoints will be protected by basic auth with app credentials
 // enforced at the nginx
@@ -63,6 +66,8 @@ apiRouter.post('/decreaseFrozenBalance', expressify(decreaseFrozenBalance, postH
 apiRouter.post('/fund', expressify(fund, postHandler));
 apiRouter.post('/transfer', expressify(transfer, postHandler));
 apiRouter.post('/withdraw', expressify(withdraw, postHandler));
+apiRouter.post('/startDvP', expressify(startDvP, postHandler));
+apiRouter.post('/executeDvP', expressify(executeDvP, postHandler));
 
 async function getAccounts() {
   const local = await shieldedWallet.getAccounts();
@@ -275,6 +280,46 @@ async function withdraw(req) {
   };
 }
 
+async function startDvP(req) {
+  const { sender, receiver, amount } = req.body;
+  if (!isShieldedAddress(sender)) {
+    throw new HttpError('Must provide "sender" in shielded address format for the sender address', 400);
+  }
+  if (!isShieldedAddress(receiver)) {
+    throw new HttpError('Must provide "receiver" in shielded address format for the receiver address', 400);
+  }
+  const shieldedSenderAddress = sender.split(',');
+  const shieldedReceiverAddress = receiver.split(',');
+  if (!amount) {
+    throw new HttpError('Must provide "amount" for the trade amount', 400);
+  }
+  const { txHash, txSubmitter, proof } = await dvpManager.startDvP(shieldedSenderAddress, shieldedReceiverAddress, amount);
+  return {
+    success: true,
+    transactionHash: txHash,
+    transactionSubmitter: txSubmitter,
+    proof,
+  };
+}
+
+async function executeDvP(req) {
+  const { senderEthAddress, counterpartyEthAddress, proof } = req.body;
+  if (!isEthereumAddress(senderEthAddress)) {
+    throw new HttpError('Must provide "senderEthAddress" for the account that started the DvP', 400);
+  }
+  if (!isEthereumAddress(counterpartyEthAddress)) {
+    throw new HttpError('Must provide "counterpartyEthAddress" for the account that will receive the tokens amount in the swap', 400);
+  }
+  if (!proof) {
+    throw new HttpError('Must provide "proof" for the original proof locked in the swap', 400);
+  }
+  const txHash = await dvpManager.executeDvP(senderEthAddress, counterpartyEthAddress, proof);
+  return {
+    success: true,
+    transactionHash: txHash,
+  };
+}
+
 function postHandler(req, res, result) {
   // eslint-disable-line no-unused-vars
   res.status(201);
@@ -295,6 +340,7 @@ function printConfig() {
   logger.info(`\t    chain ID: ${Config.getChainId()}`);
   logger.info(`\t       erc20: ${Config.getERC20Address()}`);
   logger.info(`\t         ZSC: ${Config.getZSCAddress()}`);
+  logger.info(`\t         DvP: ${Config.getDvPAddress()}`);
   logger.info(`\tepoch length: ${Config.getEpochLength()} seconds`);
 }
 
