@@ -20,13 +20,14 @@ const Prover = require('../../lib/keystore/shielded/prover.js');
 const sleep = require('util').promisify(require('timers').setTimeout);
 
 describe('trade-manager - end to end test', () => {
-  let TradeManager, wm, shielded, tmpdir, tradeManager, Utils, epochLength;
+  let TradeManager, wm, shielded, tmpdir, tradeManager, Utils, epochLength, zsc;
   let alice, bob;
 
   before(async function () {
     this.timeout(5000);
     tmpdir = fullSetup('zether-trade-manager-test');
     epochLength = parseInt(process.env.ZSC_EPOCH_LENGTH);
+    zsc = process.env.ASSETS_ZSC_ADDRESS;
 
     const { HDWallet } = require('../../lib/keystore/hdwallet');
     const ShieldedWallet = require('../../lib/keystore/shielded');
@@ -93,11 +94,11 @@ describe('trade-manager - end to end test', () => {
   });
 
   it('register Alice on ZSC', async () => {
-    await tradeManager.zetherTokenClient.registerAccount(alice.ethAccount.address, 'alice');
+    await tradeManager.zetherTokenClient.registerAccount(alice.ethAccount.address, 'alice', zsc);
   });
 
   it('register Bob on ZSC', async () => {
-    await tradeManager.zetherTokenClient.registerAccount(bob.ethAccount.address, 'bob');
+    await tradeManager.zetherTokenClient.registerAccount(bob.ethAccount.address, 'bob', zsc);
   });
 
   it('mint some tokens to Alice', async () => {
@@ -110,7 +111,7 @@ describe('trade-manager - end to end test', () => {
   });
 
   it('fundAccount() for Alice shielded account', async () => {
-    await tradeManager.zetherTokenClient.fundAccount(alice.ethAccount.address, 100);
+    await tradeManager.zetherTokenClient.fundAccount(alice.ethAccount.address, 100, zsc);
     expect(nock.isDone());
   });
 
@@ -123,32 +124,32 @@ describe('trade-manager - end to end test', () => {
     this.timeout(3 * epochLength * 1000);
     const wait = (Utils.timeBeforeNextEpoch() + 1) * 1000;
     await sleep(wait);
-    const result = await tradeManager.zetherTokenClient.getBalance(alice.shieldedAccount);
+    const result = await tradeManager.zetherTokenClient.getBalance(alice.shieldedAccount, zsc);
     expect(result).to.equal(100);
   });
 
   it('withdraw() should withdraw from an shielded account with zsc', async function () {
     this.timeout(3 * epochLength * 1000);
     await sleep(epochLength * 1000);
-    await tradeManager.zetherTokenClient.withdraw(alice.ethAccount.address, 10);
+    await tradeManager.zetherTokenClient.withdraw(alice.ethAccount.address, 10, zsc);
   });
 
   it('transfer() should transfer from an shielded account to another shielded with zsc and erc20 balance must be updated', async function () {
     this.timeout(3 * epochLength * 1000);
-    await tradeManager.zetherTokenClient.transfer(alice.shieldedAccount, bob.shieldedAccount, 10);
+    await tradeManager.zetherTokenClient.transfer(alice.shieldedAccount, bob.shieldedAccount, 10, zsc);
   });
 
   it('transfer() with decoys', async function () {
     this.timeout(3 * epochLength * 1000);
     const decoy1_ethAccount = await wm.newAccount('test-hdwallet');
     const decoy1_shieldedAccount = await shielded.createAccount(decoy1_ethAccount.address);
-    await tradeManager.zetherTokenClient.registerAccount(decoy1_ethAccount.address);
+    await tradeManager.zetherTokenClient.registerAccount(decoy1_ethAccount.address, 'decoy1', zsc);
     const decoy2_ethAccount = await wm.newAccount('test-hdwallet');
     const decoy2_shieldedAccount = await shielded.createAccount(decoy2_ethAccount.address);
-    await tradeManager.zetherTokenClient.registerAccount(decoy2_ethAccount.address);
+    await tradeManager.zetherTokenClient.registerAccount(decoy2_ethAccount.address, 'decoy2', zsc);
 
     const decoys = [decoy1_shieldedAccount, decoy2_shieldedAccount];
-    await tradeManager.zetherTokenClient.transfer(alice.shieldedAccount, bob.shieldedAccount, 10, decoys);
+    await tradeManager.zetherTokenClient.transfer(alice.shieldedAccount, bob.shieldedAccount, 10, zsc, decoys);
   });
 });
 
@@ -215,20 +216,6 @@ describe('error handling', () => {
       const wm = new WalletManager();
       TradeManager = require('../../lib/trade-manager');
       expect(() => new TradeManager(wm, shielded)).to.throw('Must provide the address of the ERC20 contract');
-    });
-
-    it('throws if no ZSC address was provided', () => {
-      reset(() => {
-        process.env.ETH_URL = 'http://localhost:7545';
-        process.env.ERC20_ADDRESS = '0x1cd89e376b23ac5e51b249aa9192003f1dd17941';
-        process.env.ADMIN_SIGNER = '0x7950ee77d50fd245f663bded5a15f150baeb5982215bb3315239dd762c72bb34';
-      });
-      const ShieldedWallet = require('../../lib/keystore/shielded');
-      const shielded = new ShieldedWallet();
-      const WalletManager = require('../../lib/wallet-manager');
-      const wm = new WalletManager();
-      TradeManager = require('../../lib/trade-manager');
-      expect(() => new TradeManager(wm, shielded)).to.throw('Must provide the address of the ZSC contract');
     });
   });
 

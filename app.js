@@ -395,7 +395,6 @@ function printConfig() {
   logger.info(`\t     eth URL: ${Config.getEthUrl()}`);
   logger.info(`\t    chain ID: ${Config.getChainId()}`);
   logger.info(`\t       erc20: ${Config.getERC20Address()}`);
-  logger.info(`\t         ZSC: ${Config.getZSCAddress()}`);
   logger.info(`\t         DvP: ${Config.getDvPAddress()}`);
   logger.info(`\tepoch length: ${Config.getEpochLength()} seconds`);
 }
@@ -416,4 +415,5 @@ module.exports = {
   app,
   serverPromise,
   tradeManager,
+  dvpManager,
 };

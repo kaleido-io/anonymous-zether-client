@@ -21,12 +21,13 @@ function reset(setup) {
   delete require.cache[require.resolve('../../lib/trade-manager')];
   delete require.cache[require.resolve('../../lib/trade-manager/cash-token')];
   delete require.cache[require.resolve('../../lib/trade-manager/zether-token')];
-  delete require.cache[require.resolve('../../lib/trade-manager/base')];
+  delete require.cache[require.resolve('../../lib/base')];
   delete require.cache[require.resolve('../../lib/wallet-manager.js')];
   delete require.cache[require.resolve('../../lib/utils.js')];
   delete require.cache[require.resolve('../../lib/config.js')];
   delete process.env.ERC20_ADDRESS;
-  delete process.env.ZSC_ADDRESS;
+  delete process.env.ASSETS_ZSC_ADDRESS;
+  delete process.env.PAYMENTS_ZSC_ADDRESS;
   delete process.env.ZSC_EPOCH_LENGTH;
   delete process.env.CHAIN_ID;
   delete process.env.ADMIN_SIGNER;
@@ -39,7 +40,8 @@ function fullSetup(name) {
   const tmpdir = join(os.tmpdir(), name);
   reset(() => {
     process.env.ERC20_ADDRESS = process.env.ERC20_ADDRESS_TEST;
-    process.env.ZSC_ADDRESS = process.env.ZSC_ADDRESS_TEST;
+    process.env.ASSETS_ZSC_ADDRESS = process.env.ASSETS_ZSC_ADDRESS_TEST;
+    process.env.PAYMENTS_ZSC_ADDRESS = process.env.PAYMENTS_ZSC_ADDRESS_TEST;
     process.env.ZSC_EPOCH_LENGTH = 6;
     process.env.CHAIN_ID = 1337;
     process.env.ADMIN_SIGNER = '0x950e0c1d6d719c65104bdeed2bd1ff97781cf90f1334abfe80e140ded4c40d21';

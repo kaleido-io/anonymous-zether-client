@@ -5,14 +5,14 @@ chai.use(require('chai-as-promised'));
 const expect = chai.expect;
 const request = require('supertest');
 const fs = require('fs-extra');
-
+const sleep = require('util').promisify(require('timers').setTimeout);
 const { fullSetup } = require('./lib/test-utils.js');
 
 describe('app.js', () => {
-  let server, tmpdir, epochLength, app, tm;
+  let server, tmpdir, epochLength, app, tm, dvp;
   let user1EthAddress, user1ShieldedAddress;
   let user2EthAddress, user2ShieldedAddress;
-  let zscAddress;
+  let assetsZSCAddress;
 
   before(async function () {
     this.timeout(10 * 1000);
@@ -21,12 +21,13 @@ describe('app.js', () => {
     tmpdir = fullSetup('zether-client-test');
     fs.removeSync(tmpdir);
     epochLength = parseInt(process.env.ZSC_EPOCH_LENGTH);
-    zscAddress = process.env.ZSC_ADDRESS;
+    assetsZSCAddress = process.env.ASSETS_ZSC_ADDRESS;
 
-    const { app: expressApp, serverPromise, tradeManager } = require('../app');
+    const { app: expressApp, serverPromise, tradeManager, dvpManager } = require('../app');
     server = await serverPromise;
     app = expressApp;
     tm = tradeManager;
+    dvp = dvpManager;
   });
 
   after(async () => {
@@ -34,6 +35,7 @@ describe('app.js', () => {
     await server.close();
     tm.cashTokenClient.web3.currentProvider.disconnect();
     tm.zetherTokenClient.web3.currentProvider.disconnect();
+    dvp.web3.currentProvider.disconnect();
   });
 
   it('GET /accounts: should return 200 and empty accounts', async () => {
@@ -42,8 +44,7 @@ describe('app.js', () => {
       .expect('Content-Type', /json/)
       .expect(200)
       .expect((result) => {
-        expect(result.body.local).deep.equals([]);
-        expect(result.body.onchain).to.be.an('object');
+        expect(result.body).to.be.an('object');
       });
   });
 
@@ -51,7 +52,7 @@ describe('app.js', () => {
     await request(app)
       .post('/api/v1/accounts')
       .set('Content-type', 'application/json')
-      .send({ name: 'user1' })
+      .send({})
       .expect('Content-Type', /json/)
       .expect(201)
       .expect((res) => {
@@ -66,7 +67,7 @@ describe('app.js', () => {
     await request(app)
       .post('/api/v1/accounts')
       .set('Content-type', 'application/json')
-      .send({ name: 'user2' })
+      .send({})
       .expect('Content-Type', /json/)
       .expect(201)
       .expect((res) => {
@@ -77,11 +78,11 @@ describe('app.js', () => {
       });
   });
 
-  it('POST /accounts/:accounts/authorize: should return 200 for authorizing ZSC', async () => {
+  it('POST /accounts/:accounts/authorize: should return 200 for authorizing assets ZSC', async () => {
     await request(app)
-      .post(`/api/v1/accounts/${zscAddress}/authorize`)
+      .post(`/api/v1/accounts/${assetsZSCAddress}/authorize`)
       .set('Content-type', 'application/json')
-      .send({ ethAddress: zscAddress })
+      .send({})
       .expect('Content-Type', /json/)
       .expect(201)
       .expect((res) => {
@@ -94,7 +95,20 @@ describe('app.js', () => {
     await request(app)
       .post(`/api/v1/accounts/${user1EthAddress}/authorize`)
       .set('Content-type', 'application/json')
-      .send({ ethAddress: user1EthAddress })
+      .send({})
+      .expect('Content-Type', /json/)
+      .expect(201)
+      .expect((res) => {
+        expect(res.body).to.be.an('object').that.has.property('success');
+        expect(res.body).to.be.an('object').that.has.property('transactionHash');
+      });
+  });
+
+  it('POST /accounts/:accounts/register: should return 200 for registering user1 shielded address', async () => {
+    await request(app)
+      .post(`/api/v1/accounts/${user1ShieldedAddress}/register`)
+      .set('Content-type', 'application/json')
+      .send({ name: 'user1', zsc: assetsZSCAddress })
       .expect('Content-Type', /json/)
       .expect(201)
       .expect((res) => {
@@ -107,7 +121,20 @@ describe('app.js', () => {
     await request(app)
       .post(`/api/v1/accounts/${user2EthAddress}/authorize`)
       .set('Content-type', 'application/json')
-      .send({ ethAddress: user2EthAddress })
+      .send({})
+      .expect('Content-Type', /json/)
+      .expect(201)
+      .expect((res) => {
+        expect(res.body).to.be.an('object').that.has.property('success');
+        expect(res.body).to.be.an('object').that.has.property('transactionHash');
+      });
+  });
+
+  it('POST /accounts/:accounts/register: should return 200 for registering user2 shielded address', async () => {
+    await request(app)
+      .post(`/api/v1/accounts/${user2ShieldedAddress}/register`)
+      .set('Content-type', 'application/json')
+      .send({ name: 'user2', zsc: assetsZSCAddress })
       .expect('Content-Type', /json/)
       .expect(201)
       .expect((res) => {
@@ -133,7 +160,7 @@ describe('app.js', () => {
     await request(app)
       .post('/api/v1/fund')
       .set('Content-type', 'application/json')
-      .send({ ethAddress: user1EthAddress, amount: 100 })
+      .send({ ethAddress: user1EthAddress, amount: 100, zsc: assetsZSCAddress })
       .expect('Content-Type', /json/)
       .expect(201)
       .expect((res) => {
@@ -144,12 +171,14 @@ describe('app.js', () => {
 
   it('POST /transfer: should return 200', async function () {
     this.timeout(3 * epochLength * 1000);
+    console.log(`Sleep for ${epochLength} seconds for the next epoch`);
+    await sleep(epochLength * 1000);
     const sender = user1ShieldedAddress.join(',');
     const receiver = user2ShieldedAddress.join(',');
     await request(app)
       .post('/api/v1/transfer')
       .set('Content-type', 'application/json')
-      .send({ sender, receiver, amount: 100 })
+      .send({ sender, receiver, amount: 100, zsc: assetsZSCAddress })
       .expect('Content-Type', /json/)
       .expect(201)
       .expect((res) => {
@@ -160,10 +189,12 @@ describe('app.js', () => {
 
   it('POST /withdraw: should return 200', async function () {
     this.timeout(3 * epochLength * 1000);
+    console.log(`Sleep for ${epochLength} seconds for the next epoch`);
+    await sleep(epochLength * 1000);
     await request(app)
       .post('/api/v1/withdraw')
       .set('Content-type', 'application/json')
-      .send({ ethAddress: user2EthAddress, amount: 10 })
+      .send({ ethAddress: user2EthAddress, amount: 10, zsc: assetsZSCAddress })
       .expect('Content-Type', /json/)
       .expect(201)
       .expect((res) => {
