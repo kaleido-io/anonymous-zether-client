@@ -51,47 +51,80 @@ const PORT = parseInt(process.env.PORT || 3000);
 // enforced at the nginx
 app.use('/api/v1', contentType, cors(), jsonBodyParser, requestLogger, apiRouter);
 
+// local accounts
 apiRouter.get('/accounts', expressify(getAccounts, getHandler));
 apiRouter.post('/accounts', expressify(newAccount, postHandler));
 apiRouter.get('/accounts/:account', expressify(accountStatus, getHandler));
+// accounts in the RealDigital contract
 apiRouter.post('/accounts/:account/authorize', expressify(authorizeAccount, postHandler));
 apiRouter.post('/accounts/:account/revoke', expressify(revokeAccount, postHandler));
+// account balance in the RealDigital or ZSC contract
 apiRouter.get('/accounts/:account/balance', expressify(getBalance, getHandler));
-apiRouter.get('/accounts', expressify(getAccounts, getHandler));
-apiRouter.post('/onetimeSigner', expressify(nextOnetimeSigner, postHandler));
+// registered accounts in the ZSC contract
+apiRouter.get('/shieldedAccounts', expressify(getShieldedAccounts, getHandler));
+apiRouter.post('/accounts/:account/register', expressify(registerShieldedAccount, postHandler));
+// operations with the RealDigital contract
 apiRouter.post('/mint', expressify(mint, postHandler));
 apiRouter.post('/burn', expressify(burn, postHandler));
 apiRouter.post('/move', expressify(move, postHandler));
 apiRouter.post('/moveAndBurn', expressify(moveAndBurn, postHandler));
 apiRouter.post('/increaseFrozenBalance', expressify(increaseFrozenBalance, postHandler));
 apiRouter.post('/decreaseFrozenBalance', expressify(decreaseFrozenBalance, postHandler));
+// operations with the ZSC contract
 apiRouter.post('/fund', expressify(fund, postHandler));
 apiRouter.post('/transfer', expressify(transfer, postHandler));
 apiRouter.post('/withdraw', expressify(withdraw, postHandler));
+// operations for the DvP contract
+apiRouter.post('/onetimeSigner', expressify(nextOnetimeSigner, postHandler));
 apiRouter.post('/startDvP', expressify(startDvP, postHandler));
 apiRouter.post('/executeDvP', expressify(executeDvP, postHandler));
 
 async function getAccounts() {
   const local = await shieldedWallet.getAccounts();
-  const shieldedAccounts = await tradeManager.zetherTokenClient.getRegisteredAccounts();
-  return { local, onchain: { shieldedAccounts } };
+  return local;
 }
 
-async function newAccount(req) {
-  const { name } = req.body;
-  if (!name) {
-    throw new HttpError('Must provide "name" for the account to create and register', 400);
+async function getShieldedAccounts(req) {
+  const zsc = req.query.zsc;
+  if (!zsc) {
+    throw new HttpError('Must provide a query parameter "zsc"', 400);
   }
+  const shieldedAccounts = await tradeManager.zetherTokenClient.getRegisteredAccounts(zsc);
+  return shieldedAccounts;
+}
+
+async function newAccount() {
   const ethAccount = await walletManager.newAccount('users');
   await tradeManager.cashTokenClient.enableAccount(ethAccount.address);
   const shieldedAccount = await shieldedWallet.createAccount(ethAccount.address);
-  await tradeManager.zetherTokenClient.registerAccount(ethAccount.address, name);
   return { eth: ethAccount.address, shielded: shieldedAccount };
 }
 
 async function authorizeAccount(req) {
   const ethAddress = req.params.account;
+  if (!isEthereumAddress(ethAddress)) {
+    throw new HttpError('Address does not appear to be a valid Ethereum address', 400);
+  }
   const txHash = await tradeManager.cashTokenClient.enableAccount(ethAddress);
+  return {
+    success: true,
+    transactionHash: txHash,
+  };
+}
+
+async function registerShieldedAccount(req) {
+  const shieldedAddress = req.params.account;
+  if (!isShieldedAddress(shieldedAddress)) {
+    throw new HttpError('Address does not appear to be a valid shielded address', 400);
+  }
+  const { name, zsc } = req.body;
+  if (!name) {
+    throw new HttpError('Must provide "name" for the account to register', 400);
+  }
+  if (!zsc) {
+    throw new HttpError('Must provide "zsc" for the ZSC contract to register with', 400);
+  }
+  const txHash = await tradeManager.zetherTokenClient.registerShieldedAccount(shieldedAddress, name, zsc);
   return {
     success: true,
     transactionHash: txHash,
@@ -133,8 +166,12 @@ async function getBalance(req) {
     balance = await tradeManager.cashTokenClient.getBalance(address);
   } else if (isShieldedAddress(address)) {
     // query for the Zether balance
+    const zsc = req.query.zsc;
+    if (!zsc) {
+      throw new HttpError('Must provide "zsc" query parameter for the ZSC contract to check balance with', 400);
+    }
     const shieldedAddress = address.split(',');
-    balance = await tradeManager.zetherTokenClient.getBalance(shieldedAddress);
+    balance = await tradeManager.zetherTokenClient.getBalance(shieldedAddress, zsc);
   } else {
     throw new HttpError('Unknown address format', 400);
   }
@@ -238,14 +275,17 @@ async function decreaseFrozenBalance(req) {
 }
 
 async function fund(req) {
-  const { ethAddress, amount } = req.body;
+  const { ethAddress, amount, zsc } = req.body;
   if (!ethAddress) {
     throw new HttpError('Must provide "ethAddress" for the signing address to draw fund from', 400);
   }
   if (!amount) {
     throw new HttpError('Must provide "amount" for the funding amount', 400);
   }
-  const txHash = await tradeManager.zetherTokenClient.fundAccount(ethAddress, amount);
+  if (!zsc) {
+    throw new HttpError('Must provide "zsc" for the ZSC contract to fund', 400);
+  }
+  const txHash = await tradeManager.zetherTokenClient.fundAccount(ethAddress, amount, zsc);
   return {
     success: true,
     transactionHash: txHash,
@@ -253,7 +293,7 @@ async function fund(req) {
 }
 
 async function transfer(req) {
-  const { sender, receiver, amount } = req.body;
+  const { sender, receiver, amount, zsc, decoys } = req.body;
   if (!isShieldedAddress(sender)) {
     throw new HttpError('Must provide "sender" in shielded address format for the sender address', 400);
   }
@@ -265,7 +305,10 @@ async function transfer(req) {
   if (!amount) {
     throw new HttpError('Must provide "amount" for the transfer amount', 400);
   }
-  const txHash = await tradeManager.zetherTokenClient.transfer(shieldedSenderAddress, shieldedReceiverAddress, amount);
+  if (!zsc) {
+    throw new HttpError('Must provide "zsc" for the ZSC contract to transfer in', 400);
+  }
+  const txHash = await tradeManager.zetherTokenClient.transfer(shieldedSenderAddress, shieldedReceiverAddress, amount, zsc, decoys);
   return {
     success: true,
     transactionHash: txHash,
@@ -273,14 +316,17 @@ async function transfer(req) {
 }
 
 async function withdraw(req) {
-  const { ethAddress, amount } = req.body;
+  const { ethAddress, amount, zsc } = req.body;
   if (!isEthereumAddress(ethAddress)) {
     throw new HttpError('Must provide the "ethAddress" for the ethereum address to withdraw funds to', 400);
   }
   if (!amount) {
     throw new HttpError('Must provide "amount" for the withdraw amount', 400);
   }
-  const txHash = await tradeManager.zetherTokenClient.withdraw(ethAddress, amount);
+  if (!zsc) {
+    throw new HttpError('Must provide "zsc" for the ZSC contract to without from', 400);
+  }
+  const txHash = await tradeManager.zetherTokenClient.withdraw(ethAddress, amount, zsc);
   return {
     success: true,
     transactionHash: txHash,
@@ -288,7 +334,7 @@ async function withdraw(req) {
 }
 
 async function startDvP(req) {
-  const { sender, receiver, amount, signer } = req.body;
+  const { sender, receiver, amount, signer, zsc } = req.body;
   if (!isShieldedAddress(sender)) {
     throw new HttpError('Must provide "sender" in shielded address format for the sender address', 400);
   }
@@ -300,7 +346,10 @@ async function startDvP(req) {
   if (!amount) {
     throw new HttpError('Must provide "amount" for the trade amount', 400);
   }
-  const { txHash, txSubmitter, proof } = await dvpManager.startDvP(shieldedSenderAddress, shieldedReceiverAddress, amount, signer);
+  if (!zsc) {
+    throw new HttpError('Must provide "zsc" for the ZSC contract to without from', 400);
+  }
+  const { txHash, txSubmitter, proof } = await dvpManager.startDvP(shieldedSenderAddress, shieldedReceiverAddress, amount, signer, zsc);
   return {
     success: true,
     transactionHash: txHash,
