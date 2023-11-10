@@ -37,6 +37,24 @@
         "internalType": "struct Utils.G1Point[]",
         "name": "encryptedAmounts",
         "type": "tuple[]"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bytes32",
+            "name": "x",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "y",
+            "type": "bytes32"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct Utils.G1Point",
+        "name": "randomness",
+        "type": "tuple"
       }
     ],
     "name": "DvPStarted",
