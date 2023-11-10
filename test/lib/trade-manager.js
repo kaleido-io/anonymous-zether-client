@@ -14,6 +14,7 @@ const BN = require('bn.js');
 const { ElGamal } = require('@anonymous-zether/anonymous.js/src/utils/algebra.js');
 const bn128 = require('@anonymous-zether/anonymous.js/src/utils/bn128');
 const bn128Utils = require('@anonymous-zether/anonymous.js/src/utils/utils');
+const { soliditySha3 } = require('web3-utils');
 const { rpc, reset, fullSetup } = require('./test-utils.js');
 const Prover = require('../../lib/keystore/shielded/prover.js');
 
@@ -154,7 +155,7 @@ describe('trade-manager - end to end test', () => {
 });
 
 describe('decrypt balances', () => {
-  let TradeManager, tradeManager, tmpdir;
+  let TradeManager, tradeManager, tmpdir, shielded;
 
   before(async () => {
     tmpdir = join(os.tmpdir(), 'trade-manager-test');
@@ -166,7 +167,7 @@ describe('decrypt balances', () => {
       process.env.ADMIN_SIGNER = '0x7950ee77d50fd245f663bded5a15f150baeb5982215bb3315239dd762c72bb34';
     });
     const ShieldedWallet = require('../../lib/keystore/shielded');
-    const shielded = new ShieldedWallet();
+    shielded = new ShieldedWallet();
     const WalletManager = require('../../lib/wallet-manager');
     const wm = new WalletManager();
     TradeManager = require('../../lib/trade-manager');
@@ -370,3 +371,21 @@ describe('error handling', () => {
     });
   });
 });
+
+describe('Balance cache generation tool', () => {
+  it.skip('generate balance cache entries: <encrypted balance> : <balance>', () => {
+    const startBalance = -100000;
+    let gBalance = bn128.curve.g.mul(startBalance);
+    for (let i = 0; i < 200000; i++) {
+      console.log(`${getKey(gBalance)},${i + startBalance}`);
+      gBalance = gBalance.add(bn128.curve.g);
+    }
+  }).timeout(3600 * 1000);
+});
+
+function getKey(ecPoint) {
+  if (ecPoint.isInfinity()) {
+    return 'INF';
+  }
+  return soliditySha3(ecPoint.getX().toString(16, 64) + ecPoint.getY().toString(16, 64));
+}
