@@ -1,0 +1,350 @@
+{
+	"info": {
+		"_postman_id": "a2c9c7e6-1889-432a-b704-969264fa90a3",
+		"name": "zether-client (Alice)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "21115553"
+	},
+	"item": [
+		{
+			"name": "Get accounts",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host1}}/api/v1/accounts",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get shielded accounts in Assets ZSC",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host1}}/api/v1/shieldedAccounts?zsc={{zsc1}}",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"shieldedAccounts"
+					],
+					"query": [
+						{
+							"key": "zsc",
+							"value": "{{zsc1}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Alice account",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"aliceEth\", jsonData.eth);",
+							"postman.setEnvironmentVariable(\"aliceShielded\", jsonData.shielded.join(','));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Santander\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/accounts",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "register Alice in Assets ZSC",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Alice\",\n    \"zsc\": \"{{zsc1}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/accounts/{{aliceShielded}}/register",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts",
+						"{{aliceShielded}}",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "register Alice in Payments ZSC",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Alice\",\n    \"zsc\": \"{{zsc2}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/accounts/{{aliceShielded}}/register",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts",
+						"{{aliceShielded}}",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alice funds shielded account in Assets ZSC",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"ethAddress\": \"{{aliceEth}}\",\n    \"amount\": 100,\n    \"zsc\": \"{{zsc1}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/fund",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"fund"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alice transfers 50 assets zether to Bob",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"sender\": \"{{aliceShielded}}\",\n    \"receiver\": \"{{bobShielded}}\",\n    \"decoys\": [],\n    \"amount\": 50,\n    \"zsc\": \"{{zsc1}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/transfer",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"transfer"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alice withdraws assets zether",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"ethAddress\": \"{{aliceEth}}\",\n    \"amount\": 50,\n    \"zsc\": \"{{zsc1}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/withdraw",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"withdraw"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alice checks RealDigital balance",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/accounts/{{aliceEth}}/balance",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts",
+						"{{aliceEth}}",
+						"balance"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alice checks shielded balance in Assets ZSC",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/accounts/{{aliceShielded}}/balance?zsc={{zsc1}}",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts",
+						"{{aliceShielded}}",
+						"balance"
+					],
+					"query": [
+						{
+							"key": "zsc",
+							"value": "{{zsc1}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alice checks shielded balance in Payments ZSC",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/accounts/{{aliceShielded}}/balance?zsc={{zsc2}}",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts",
+						"{{aliceShielded}}",
+						"balance"
+					],
+					"query": [
+						{
+							"key": "zsc",
+							"value": "{{zsc2}}"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

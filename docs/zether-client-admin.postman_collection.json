@@ -1,0 +1,186 @@
+{
+	"info": {
+		"_postman_id": "dba0457c-00e9-41c3-8b53-5727ce4e474d",
+		"name": "zether-client admin",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "21115553"
+	},
+	"item": [
+		{
+			"name": "authorize Assets ZSC",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/accounts/{{zsc1}}/authorize",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts",
+						"{{zsc1}}",
+						"authorize"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "authorize Payments ZSC",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host2}}/api/v1/accounts/{{zsc2}}/authorize",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts",
+						"{{zsc2}}",
+						"authorize"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "authorize Alice in RealDigital",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/accounts/{{aliceEth}}/authorize",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts",
+						"{{aliceEth}}",
+						"authorize"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "authorize Bob in RealDigital",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/accounts/{{bobEth}}/authorize",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts",
+						"{{bobEth}}",
+						"authorize"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "mint RealDigital tokens to Alice",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"ethAddress\": \"{{aliceEth}}\",\n    \"amount\": 100\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/mint",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"mint"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "mint RealDigital tokens to Bob",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"ethAddress\": \"{{bobEth}}\",\n    \"amount\": 100\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host2}}/api/v1/mint",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"mint"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

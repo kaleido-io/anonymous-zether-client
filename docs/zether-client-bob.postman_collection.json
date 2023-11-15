@@ -1,0 +1,350 @@
+{
+	"info": {
+		"_postman_id": "07314756-b1fe-4859-bfa8-9ae1dd51baa5",
+		"name": "zether-client (Bob)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "21115553"
+	},
+	"item": [
+		{
+			"name": "Get accounts",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host2}}/api/v1/accounts",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get shielded accounts",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host2}}/api/v1/shieldedAccounts?zsc={{zsc2}}",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"shieldedAccounts"
+					],
+					"query": [
+						{
+							"key": "zsc",
+							"value": "{{zsc2}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Bob account",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"bobEth\", jsonData.eth);",
+							"postman.setEnvironmentVariable(\"bobShielded\", jsonData.shielded.join(','));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host2}}/api/v1/accounts",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "register Bob in Assets ZSC",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Bob\",\n    \"zsc\": \"{{zsc1}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host2}}/api/v1/accounts/{{bobShielded}}/register",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts",
+						"{{bobShielded}}",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "register Bob in Payments ZSC",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Bob\",\n    \"zsc\": \"{{zsc2}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host2}}/api/v1/accounts/{{bobShielded}}/register",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts",
+						"{{bobShielded}}",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Bob funds shielded account in Payments ZSC",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"ethAddress\": \"{{bobEth}}\",\n    \"amount\": 100,\n    \"zsc\": \"{{zsc2}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host2}}/api/v1/fund",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"fund"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Bob transfers 50 Payments zether to Alice",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"sender\": \"{{bobShielded}}\",\n    \"receiver\": \"{{aliceShielded}}\",\n    \"amount\": 50,\n    \"zsc\": \"{{zsc2}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host2}}/api/v1/transfer",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"transfer"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Bob withdraws from Payments ZSC",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"ethAddress\": \"{{bobEth}}\",\n    \"amount\": 50,\n    \"zsc\": \"{{zsc2}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host2}}/api/v1/withdraw",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"withdraw"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Bob checks RealDigital balance",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host2}}/api/v1/accounts/{{bobEth}}/balance",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts",
+						"{{bobEth}}",
+						"balance"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Bob checks shielded balance in Assets ZSC",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host2}}/api/v1/accounts/{{bobShielded}}/balance?zsc={{zsc1}}",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts",
+						"{{bobShielded}}",
+						"balance"
+					],
+					"query": [
+						{
+							"key": "zsc",
+							"value": "{{zsc1}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Bob checks shielded balance in Payments ZSC",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host2}}/api/v1/accounts/{{bobShielded}}/balance?zsc={{zsc2}}",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"accounts",
+						"{{bobShielded}}",
+						"balance"
+					],
+					"query": [
+						{
+							"key": "zsc",
+							"value": "{{zsc2}}"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

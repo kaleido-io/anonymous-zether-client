@@ -1,0 +1,257 @@
+{
+	"info": {
+		"_postman_id": "19588a98-890c-4c39-afa2-5dfc73d2e119",
+		"name": "zether-client DvP",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "21115553"
+	},
+	"item": [
+		{
+			"name": "Alice creates onetime signer",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"txSubmitter1\", jsonData.address);",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/onetimeSigner",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"onetimeSigner"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Bob creates onetime signer",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"txSubmitter2\", jsonData.address);",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host2}}/api/v1/onetimeSigner",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"onetimeSigner"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alice initiates DvP in Assets",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = JSON.parse(responseBody);",
+							"if (jsonData.transactionSubmitter) {",
+							"    postman.setEnvironmentVariable(\"txSubmitter1\", jsonData.transactionSubmitter);",
+							"    postman.setEnvironmentVariable(\"proof1\", jsonData.proof);",
+							"}",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"sender\": \"{{aliceShielded}}\",\n    \"receiver\": \"{{bobShielded}}\",\n    \"amount\": 10,\n    \"signer\": \"{{txSubmitter1}}\",\n    \"zsc\": \"{{zsc1}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/startDvP",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"startDvP"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Bob initiates DvP in Payments",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = JSON.parse(responseBody);",
+							"if (jsonData.transactionSubmitter) {",
+							"    postman.setEnvironmentVariable(\"txSubmitter2\", jsonData.transactionSubmitter);",
+							"    postman.setEnvironmentVariable(\"proof2\", jsonData.proof);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"sender\": \"{{bobShielded}}\",\n    \"receiver\": \"{{aliceShielded}}\",\n    \"amount\": 10,\n    \"signer\": \"{{txSubmitter2}}\",\n    \"zsc\": \"{{zsc2}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host2}}/api/v1/startDvP",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"startDvP"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alice executes asset DvP",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"senderEthAddress\": \"{{txSubmitter1}}\",\n    \"counterpartyEthAddress\": \"{{txSubmitter2}}\",\n    \"proof\": \"{{proof1}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host1}}/api/v1/executeDvP",
+					"host": [
+						"{{host1}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"executeDvP"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Bob executes payment DvP",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"senderEthAddress\": \"{{txSubmitter2}}\",\n    \"counterpartyEthAddress\": \"{{txSubmitter1}}\",\n    \"proof\": \"{{proof2}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host2}}/api/v1/executeDvP",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"executeDvP"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
