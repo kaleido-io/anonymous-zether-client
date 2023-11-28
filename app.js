@@ -95,7 +95,6 @@ async function getShieldedAccounts(req) {
 
 async function newAccount() {
   const ethAccount = await walletManager.newAccount('users');
-  await tradeManager.cashTokenClient.enableAccount(ethAccount.address);
   const shieldedAccount = await shieldedWallet.createAccount(ethAccount.address);
   return { eth: ethAccount.address, shielded: shieldedAccount };
 }
