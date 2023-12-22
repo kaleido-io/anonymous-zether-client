@@ -1,9 +1,8 @@
 {
 	"info": {
-		"_postman_id": "a2c9c7e6-1889-432a-b704-969264fa90a3",
-		"name": "zether-client (Alice)",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "21115553"
+		"_postman_id": "e529f212-4533-48ba-aac4-c865138d1ebb",
+		"name": "zether-client (Bob)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
@@ -12,9 +11,9 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{host1}}/api/v1/accounts",
+					"raw": "{{host2}}/api/v1/accounts",
 					"host": [
-						"{{host1}}"
+						"{{host2}}"
 					],
 					"path": [
 						"api",
@@ -26,14 +25,14 @@
 			"response": []
 		},
 		{
-			"name": "Get shielded accounts in Assets ZSC",
+			"name": "Get shielded accounts",
 			"request": {
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{host1}}/api/v1/shieldedAccounts?zsc={{zsc1}}",
+					"raw": "{{host2}}/api/v1/shieldedAccounts?zsc={{zsc2}}",
 					"host": [
-						"{{host1}}"
+						"{{host2}}"
 					],
 					"path": [
 						"api",
@@ -43,7 +42,7 @@
 					"query": [
 						{
 							"key": "zsc",
-							"value": "{{zsc1}}"
+							"value": "{{zsc2}}"
 						}
 					]
 				}
@@ -51,15 +50,15 @@
 			"response": []
 		},
 		{
-			"name": "Create Alice account",
+			"name": "Create Bob account",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
 						"exec": [
 							"var jsonData = JSON.parse(responseBody);",
-							"postman.setEnvironmentVariable(\"aliceEth\", jsonData.eth);",
-							"postman.setEnvironmentVariable(\"aliceShielded\", jsonData.shielded.join(','));"
+							"postman.setEnvironmentVariable(\"bobEth\", jsonData.eth);",
+							"postman.setEnvironmentVariable(\"bobShielded\", jsonData.shielded.join(','));"
 						],
 						"type": "text/javascript"
 					}
@@ -70,7 +69,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"name\": \"Santander\"\n}",
+					"raw": "{}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -78,9 +77,9 @@
 					}
 				},
 				"url": {
-					"raw": "{{host1}}/api/v1/accounts",
+					"raw": "{{host2}}/api/v1/accounts",
 					"host": [
-						"{{host1}}"
+						"{{host2}}"
 					],
 					"path": [
 						"api",
@@ -92,13 +91,13 @@
 			"response": []
 		},
 		{
-			"name": "register Alice in Assets ZSC",
+			"name": "register Bob in Assets ZSC",
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"name\": \"Alice\",\n    \"zsc\": \"{{zsc1}}\"\n}",
+					"raw": "{\n    \"name\": \"Bob\",\n    \"zsc\": \"{{zsc1}}\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -106,15 +105,15 @@
 					}
 				},
 				"url": {
-					"raw": "{{host1}}/api/v1/accounts/{{aliceShielded}}/register",
+					"raw": "{{host2}}/api/v1/accounts/{{bobShielded}}/register",
 					"host": [
-						"{{host1}}"
+						"{{host2}}"
 					],
 					"path": [
 						"api",
 						"v1",
 						"accounts",
-						"{{aliceShielded}}",
+						"{{bobShielded}}",
 						"register"
 					]
 				}
@@ -122,13 +121,13 @@
 			"response": []
 		},
 		{
-			"name": "register Alice in Payments ZSC",
+			"name": "register Bob in Payments ZSC",
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"name\": \"Alice\",\n    \"zsc\": \"{{zsc2}}\"\n}",
+					"raw": "{\n    \"name\": \"Bob\",\n    \"zsc\": \"{{zsc2}}\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -136,15 +135,15 @@
 					}
 				},
 				"url": {
-					"raw": "{{host1}}/api/v1/accounts/{{aliceShielded}}/register",
+					"raw": "{{host2}}/api/v1/accounts/{{bobShielded}}/register",
 					"host": [
-						"{{host1}}"
+						"{{host2}}"
 					],
 					"path": [
 						"api",
 						"v1",
 						"accounts",
-						"{{aliceShielded}}",
+						"{{bobShielded}}",
 						"register"
 					]
 				}
@@ -152,13 +151,13 @@
 			"response": []
 		},
 		{
-			"name": "Alice funds shielded account in Assets ZSC",
+			"name": "Bob funds shielded account in Payments ZSC (ERC20)",
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"ethAddress\": \"{{aliceEth}}\",\n    \"amount\": 100,\n    \"zsc\": \"{{zsc1}}\"\n}",
+					"raw": "{\n    \"ethAddress\": \"{{bobEth}}\",\n    \"amount\": 100,\n    \"zsc\": \"{{zsc2}}\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -166,27 +165,28 @@
 					}
 				},
 				"url": {
-					"raw": "{{host1}}/api/v1/fund",
+					"raw": "{{host2}}/api/v1/fund/erc20",
 					"host": [
-						"{{host1}}"
+						"{{host2}}"
 					],
 					"path": [
 						"api",
 						"v1",
-						"fund"
+						"fund",
+						"erc20"
 					]
 				}
 			},
 			"response": []
 		},
 		{
-			"name": "Alice transfers 50 assets zether to Bob",
+			"name": "Bob transfers 50 Payments zether to Alice",
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"sender\": \"{{aliceShielded}}\",\n    \"receiver\": \"{{bobShielded}}\",\n    \"decoys\": [],\n    \"amount\": 50,\n    \"zsc\": \"{{zsc1}}\"\n}",
+					"raw": "{\n    \"sender\": \"{{bobShielded}}\",\n    \"receiver\": \"{{aliceShielded}}\",\n    \"amount\": 50,\n    \"zsc\": \"{{zsc2}}\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -194,9 +194,9 @@
 					}
 				},
 				"url": {
-					"raw": "{{host1}}/api/v1/transfer",
+					"raw": "{{host2}}/api/v1/transfer",
 					"host": [
-						"{{host1}}"
+						"{{host2}}"
 					],
 					"path": [
 						"api",
@@ -208,13 +208,13 @@
 			"response": []
 		},
 		{
-			"name": "Alice withdraws assets zether",
+			"name": "Bob withdraws from Payments ZSC",
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"ethAddress\": \"{{aliceEth}}\",\n    \"amount\": 50,\n    \"zsc\": \"{{zsc1}}\"\n}",
+					"raw": "{\n    \"ethAddress\": \"{{bobEth}}\",\n    \"amount\": 50,\n    \"zsc\": \"{{zsc2}}\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -222,9 +222,9 @@
 					}
 				},
 				"url": {
-					"raw": "{{host1}}/api/v1/withdraw",
+					"raw": "{{host2}}/api/v1/withdraw",
 					"host": [
-						"{{host1}}"
+						"{{host2}}"
 					],
 					"path": [
 						"api",
@@ -236,7 +236,7 @@
 			"response": []
 		},
 		{
-			"name": "Alice checks RealDigital balance",
+			"name": "Bob checks RealDigital balance",
 			"protocolProfileBehavior": {
 				"disableBodyPruning": true
 			},
@@ -253,15 +253,15 @@
 					}
 				},
 				"url": {
-					"raw": "{{host1}}/api/v1/accounts/{{aliceEth}}/balance",
+					"raw": "{{host2}}/api/v1/accounts/{{bobEth}}/balance",
 					"host": [
-						"{{host1}}"
+						"{{host2}}"
 					],
 					"path": [
 						"api",
 						"v1",
 						"accounts",
-						"{{aliceEth}}",
+						"{{bobEth}}",
 						"balance"
 					]
 				}
@@ -269,7 +269,7 @@
 			"response": []
 		},
 		{
-			"name": "Alice checks shielded balance in Assets ZSC",
+			"name": "Bob checks shielded balance in Assets ZSC",
 			"protocolProfileBehavior": {
 				"disableBodyPruning": true
 			},
@@ -286,15 +286,15 @@
 					}
 				},
 				"url": {
-					"raw": "{{host1}}/api/v1/accounts/{{aliceShielded}}/balance?zsc={{zsc1}}",
+					"raw": "{{host2}}/api/v1/accounts/{{bobShielded}}/balance?zsc={{zsc1}}",
 					"host": [
-						"{{host1}}"
+						"{{host2}}"
 					],
 					"path": [
 						"api",
 						"v1",
 						"accounts",
-						"{{aliceShielded}}",
+						"{{bobShielded}}",
 						"balance"
 					],
 					"query": [
@@ -308,7 +308,7 @@
 			"response": []
 		},
 		{
-			"name": "Alice checks shielded balance in Payments ZSC",
+			"name": "Bob checks shielded balance in Payments ZSC",
 			"protocolProfileBehavior": {
 				"disableBodyPruning": true
 			},
@@ -325,15 +325,15 @@
 					}
 				},
 				"url": {
-					"raw": "{{host1}}/api/v1/accounts/{{aliceShielded}}/balance?zsc={{zsc2}}",
+					"raw": "{{host2}}/api/v1/accounts/{{bobShielded}}/balance?zsc={{zsc2}}",
 					"host": [
-						"{{host1}}"
+						"{{host2}}"
 					],
 					"path": [
 						"api",
 						"v1",
 						"accounts",
-						"{{aliceShielded}}",
+						"{{bobShielded}}",
 						"balance"
 					],
 					"query": [
@@ -341,6 +341,35 @@
 							"key": "zsc",
 							"value": "{{zsc2}}"
 						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Bob funds shielded account in Assets ZSC (ERC1155)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"ethAddress\": \"{{bobEth}}\",\n    \"amount\": 100,\n    \"zsc\": \"{{zsc1}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host2}}/api/v1/fund/erc1155",
+					"host": [
+						"{{host2}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"fund",
+						"erc1155"
 					]
 				}
 			},

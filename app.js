@@ -71,7 +71,8 @@ apiRouter.post('/moveAndBurn', expressify(moveAndBurn, postHandler));
 apiRouter.post('/increaseFrozenBalance', expressify(increaseFrozenBalance, postHandler));
 apiRouter.post('/decreaseFrozenBalance', expressify(decreaseFrozenBalance, postHandler));
 // operations with the ZSC contract
-apiRouter.post('/fund', expressify(fund, postHandler));
+apiRouter.post('/fund/erc20', expressify(fundERC20, postHandler));
+apiRouter.post('/fund/erc1155', expressify(fundERC1155, postHandler));
 apiRouter.post('/transfer', expressify(transfer, postHandler));
 apiRouter.post('/withdraw', expressify(withdraw, postHandler));
 // operations for the DvP contract
@@ -274,7 +275,7 @@ async function decreaseFrozenBalance(req) {
 }
 
 async function fund(req) {
-  const { ethAddress, amount, zsc } = req.body;
+  const { ethAddress, amount, zsc, isERC20 } = req;
   if (!ethAddress) {
     throw new HttpError('Must provide "ethAddress" for the signing address to draw fund from', 400);
   }
@@ -284,11 +285,19 @@ async function fund(req) {
   if (!zsc) {
     throw new HttpError('Must provide "zsc" for the ZSC contract to fund', 400);
   }
-  const txHash = await tradeManager.zetherTokenClient.fundAccount(ethAddress, amount, zsc);
+  const txHash = await tradeManager.zetherTokenClient.fundAccount(ethAddress, amount, zsc, isERC20);
   return {
     success: true,
     transactionHash: txHash,
   };
+}
+
+async function fundERC20(req) {
+  return await fund({ ...req.body, isERC20: true });
+}
+
+async function fundERC1155(req) {
+  return await fund({ ...req.body, isERC20: false });
 }
 
 async function transfer(req) {
