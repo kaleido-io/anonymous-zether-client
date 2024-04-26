@@ -1,0 +1,200 @@
+{
+	"info": {
+		"_postman_id": "4e817bea-cf5a-4744-a24a-891ca5bf7303",
+		"name": "Anonymous Zether Client",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29569604"
+	},
+	"item": [
+		{
+			"name": "Look up hosted accounts",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:3000/api/v1/accounts",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"v1",
+						"accounts"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Mint ERC20 tokens",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "Look up ERC20 balances",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "Lookup Zether balances",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:3000/api/v1/accounts/0x088e0c151ce3828ac25245a6fd56977f986ae3bb3724651b4bf7b49ed45f1269,0x083c23057e981fc55494300414be6ddb4b42f9c6a4c8e6f989cf9419c2cff3c8/balance",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"v1",
+						"accounts",
+						"0x088e0c151ce3828ac25245a6fd56977f986ae3bb3724651b4bf7b49ed45f1269,0x083c23057e981fc55494300414be6ddb4b42f9c6a4c8e6f989cf9419c2cff3c8",
+						"balance"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create a pair of ethereum and shielded accounts",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/v1/accounts",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"v1",
+						"accounts"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Deposit Zether",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"ethAddress\":\"0x7330F0713b8ddDD5654167bff53fb0f5e6c8C124\",\"amount\":100}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/v1/fund",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"v1",
+						"fund"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Transfer Zether",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"sender\": \"0x1057028402fc32099f40e2d49ade6c5f5cb39bcd150328ec2bc87e7686ba438e,0x2a5e4c3852305d64c08289025fda6aa1fc7f9ef41ad1b01cfbe8fce04d3fddc7\",\n    \"receiver\": \"0x2e5aba4733a9a3a6b6a11dbca5b5296fcc4a0a9f8e05ae0eeff6f0651a7a6da8,0x0ad5f770f427db072668ed493c1dd41bbf3c2f43ff7725eda54da10428cce043\",\n    \"amount\": 10\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/v1/transfer",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"v1",
+						"transfer"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Withdraw Zether",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"ethAddress\":\"0x78B861C193F08AA32D00d2B1138B58530b842767\",\"amount\":10}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/v1/withdraw",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"v1",
+						"withdraw"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
