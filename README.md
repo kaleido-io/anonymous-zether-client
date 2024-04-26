@@ -27,11 +27,11 @@ Follow the steps below to have a working system.
 
 The client works with any Ethereum JSON-RPC endpoint, such as a local node for testing purposes, or a permissioned network hosted in Kaleido.
 
-You can get a local Ethereum node running easily by using [ganache-cli](https://www.npmjs.com/package/ganache-cli):
+You can get a local Ethereum node running easily by using [ganache](https://www.npmjs.com/package/ganache):
 
 ```console
 $ $ ganache-cli --gasPrice 0 -k berlin --miner.blockGasLimit 0x11e1a300
-ganache v7.9.1 (@ganache/cli: 0.10.1, @ganache/core: 0.10.1)
+ganache v7.9.2 (@ganache/cli: 0.10.2, @ganache/core: 0.10.2)
 Starting RPC server
 
 Available Accounts
@@ -115,6 +115,7 @@ The app takes configurations in the form of environment variables. They can be p
 ## Launch the server
 
 ```console
+$ npm i
 $ node app.js
 2023-10-11T17:28:02.103Z [INFO] Successfully opened connection to key DB at /Users/jimzhang/Documents/tmp/zether/keysdb
 2023-10-11T17:28:02.109Z [INFO] Initialized HD Wallet for submitting transactions
